@@ -1,4 +1,5 @@
 ﻿namespace DevNews.Domain.Common;
+
 public class ResultResponse<T>(bool isSuccess, T data, string errorMessage)
 {
     private bool IsSuccess { get; set; } = isSuccess;

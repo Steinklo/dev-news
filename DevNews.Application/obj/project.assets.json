@@ -2,60 +2,94 @@
   "version": 3,
   "targets": {
     "net10.0": {
-      "Mediator/1.0.2123": {
+      "Mediator.Abstractions/3.0.1": {
         "type": "package",
         "dependencies": {
-          "ServiceStack.Text": "3.2.2"
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.0"
         },
         "compile": {
-          "lib/Mediator.dll": {}
+          "lib/net8.0/Mediator.dll": {
+            "related": ".xml"
+          }
         },
         "runtime": {
-          "lib/Mediator.dll": {}
+          "lib/net8.0/Mediator.dll": {
+            "related": ".xml"
+          }
         }
       },
-      "ServiceStack.Text/3.2.2": {
+      "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.0": {
         "type": "package",
         "compile": {
-          "lib/ServiceStack.Text.dll": {}
+          "lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
+            "related": ".xml"
+          }
         },
         "runtime": {
-          "lib/ServiceStack.Text.dll": {}
+          "lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/net6.0/_._": {}
         }
       }
     }
   },
   "libraries": {
-    "Mediator/1.0.2123": {
-      "sha512": "Rl1ogCbyFIAuFc3t9L+VnLIa12VK+Le38SHKs+94VGsBpIqZmqBHfBpudt52VmqzNP17k8mlzHGNfZuteSyrQA==",
+    "Mediator.Abstractions/3.0.1": {
+      "sha512": "WLWp7S7pt818wsK2IiFwGwvUhwq0E/7F0LkglDQKx+4rSzRWVKD3CHtaCi1fpeURH+v44ZPxaRVBCNV7uWOBYQ==",
       "type": "package",
-      "path": "mediator/1.0.2123",
+      "path": "mediator.abstractions/3.0.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "lib/Mediator.dll",
-        "mediator.1.0.2123.nupkg.sha512",
-        "mediator.nuspec"
+        "LICENSE",
+        "README.md",
+        "lib/net8.0/Mediator.dll",
+        "lib/net8.0/Mediator.xml",
+        "lib/netstandard2.0/Mediator.dll",
+        "lib/netstandard2.0/Mediator.xml",
+        "mediator.abstractions.3.0.1.nupkg.sha512",
+        "mediator.abstractions.nuspec"
       ]
     },
-    "ServiceStack.Text/3.2.2": {
-      "sha512": "PINVnZiz4u6MVuz/7Y9ru2inAA8AiRLvC72rnnvRLo19iFHDMDNzn7oMozvZ+OGVjqSL9LEUx6z1Rti9xJav8w==",
+    "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.0": {
+      "sha512": "cjWrLkJXK0rs4zofsK4bSdg+jhDLTaxrkXu4gS6Y7MAlCvRyNNgwY/lJi5RDlQOnSZweHqoyvgvbdvQsRIW+hg==",
       "type": "package",
-      "path": "servicestack.text/3.2.2",
+      "path": "microsoft.extensions.dependencyinjection.abstractions/8.0.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "lib/ServiceStack.Text.XML",
-        "lib/ServiceStack.Text.dll",
-        "lib/ServiceStack.Text.pdb",
-        "servicestack.text.3.2.2.nupkg.sha512",
-        "servicestack.text.nuspec"
+        "Icon.png",
+        "LICENSE.TXT",
+        "PACKAGE.md",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/net461/Microsoft.Extensions.DependencyInjection.Abstractions.targets",
+        "buildTransitive/net462/_._",
+        "buildTransitive/net6.0/_._",
+        "buildTransitive/netcoreapp2.0/Microsoft.Extensions.DependencyInjection.Abstractions.targets",
+        "lib/net462/Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+        "lib/net462/Microsoft.Extensions.DependencyInjection.Abstractions.xml",
+        "lib/net6.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+        "lib/net6.0/Microsoft.Extensions.DependencyInjection.Abstractions.xml",
+        "lib/net7.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+        "lib/net7.0/Microsoft.Extensions.DependencyInjection.Abstractions.xml",
+        "lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+        "lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.xml",
+        "lib/netstandard2.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+        "lib/netstandard2.0/Microsoft.Extensions.DependencyInjection.Abstractions.xml",
+        "lib/netstandard2.1/Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+        "lib/netstandard2.1/Microsoft.Extensions.DependencyInjection.Abstractions.xml",
+        "microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+        "microsoft.extensions.dependencyinjection.abstractions.nuspec",
+        "useSharedDesignerContext.txt"
       ]
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
-      "Mediator >= 1.0.2123"
+      "Mediator.Abstractions >= 3.0.1"
     ]
   },
   "packageFolders": {
@@ -103,9 +137,9 @@
       "net10.0": {
         "targetAlias": "net10.0",
         "dependencies": {
-          "Mediator": {
+          "Mediator.Abstractions": {
             "target": "Package",
-            "version": "[1.0.2123, )"
+            "version": "[3.0.1, )"
           }
         },
         "imports": [
@@ -401,27 +435,5 @@
         }
       }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'Mediator 1.0.2123' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net10.0'. This package may not be fully compatible with your project.",
-      "libraryId": "Mediator",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    },
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'ServiceStack.Text 3.2.2' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net10.0'. This package may not be fully compatible with your project.",
-      "libraryId": "ServiceStack.Text",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    }
-  ]
+  }
 }
