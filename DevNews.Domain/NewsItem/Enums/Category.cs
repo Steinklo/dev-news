@@ -15,5 +15,6 @@ public enum CategoryEnum
     Tools,
     BestPractices,
     OpenSource,
+    Performance,
     Other
 }

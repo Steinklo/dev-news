@@ -90,7 +90,7 @@ public class NewsItem : AggregateRoot<Guid>
     /// </summary>
     public ResultResponse<NewsItem> Update(
         string title,
-        string info,
+        string summary,
         string url,
         CategoryEnum category)
     {
@@ -98,7 +98,7 @@ public class NewsItem : AggregateRoot<Guid>
         if (!titleResult.IsSuccess)
             return ResultResponse<NewsItem>.Failure(titleResult.ErrorMessage);
 
-        var summaryResult = NewsSummary.Create(info);
+        var summaryResult = NewsSummary.Create(summary);
         if (!summaryResult.IsSuccess)
             return ResultResponse<NewsItem>.Failure(summaryResult.ErrorMessage);
 

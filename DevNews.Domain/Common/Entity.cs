@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-
-namespace Orchestra.Booking.Domain.Common;
+﻿namespace DevNews.Domain.Common;
 
 public abstract class Entity<TId>
     where TId : notnull

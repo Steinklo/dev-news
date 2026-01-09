@@ -1,6 +1,4 @@
-﻿using Orchestra.Booking.Domain.Common;
-
-namespace DevNews.Domain.Common;
+﻿namespace DevNews.Domain.Common;
 
 public abstract class AggregateRoot<TId> : Entity<TId>
     where TId : notnull

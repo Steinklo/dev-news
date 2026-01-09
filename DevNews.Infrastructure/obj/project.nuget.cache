@@ -1,8 +1,30 @@
 {
   "version": 2,
-  "dgSpecHash": "FRjmVnj3t5w=",
+  "dgSpecHash": "JWH3dCg66qk=",
   "success": true,
-  "projectFilePath": "C:\\Users\\david\\RiderProjects\\dev-news\\DevNews.Infrastructure\\DevNews.Infrastructure.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "C:\\Users\\david.haland\\RiderProjects\\dev-news\\DevNews.Infrastructure\\DevNews.Infrastructure.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\david.haland\\.nuget\\packages\\azure.core\\1.44.1\\azure.core.1.44.1.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\fluentvalidation\\12.1.1\\fluentvalidation.12.1.1.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\mediator.abstractions\\3.0.1\\mediator.abstractions.3.0.1.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\mediator.sourcegenerator\\3.0.1\\mediator.sourcegenerator.3.0.1.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\microsoft.azure.cosmos\\3.56.0\\microsoft.azure.cosmos.3.56.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\6.0.0\\microsoft.bcl.asyncinterfaces.6.0.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\microsoft.bcl.hashcode\\1.1.0\\microsoft.bcl.hashcode.1.1.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\10.0.1\\microsoft.extensions.configuration.abstractions.10.0.1.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.1\\microsoft.extensions.dependencyinjection.abstractions.10.0.1.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.1\\microsoft.extensions.logging.abstractions.10.0.1.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\microsoft.extensions.primitives\\10.0.1\\microsoft.extensions.primitives.10.0.1.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\microsoft.win32.systemevents\\6.0.0\\microsoft.win32.systemevents.6.0.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\scriban\\6.2.0\\scriban.6.2.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\system.clientmodel\\1.1.0\\system.clientmodel.1.1.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\system.configuration.configurationmanager\\6.0.0\\system.configuration.configurationmanager.6.0.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\system.drawing.common\\6.0.0\\system.drawing.common.6.0.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\system.memory.data\\6.0.0\\system.memory.data.6.0.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\system.security.cryptography.protecteddata\\6.0.0\\system.security.cryptography.protecteddata.6.0.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\system.security.permissions\\6.0.0\\system.security.permissions.6.0.0.nupkg.sha512",
+    "C:\\Users\\david.haland\\.nuget\\packages\\system.windows.extensions\\6.0.0\\system.windows.extensions.6.0.0.nupkg.sha512"
+  ],
   "logs": []
 }

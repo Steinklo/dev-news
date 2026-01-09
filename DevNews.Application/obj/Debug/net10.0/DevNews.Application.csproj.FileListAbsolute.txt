@@ -1,0 +1,16 @@
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\bin\Debug\net10.0\DevNews.Application.deps.json
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\bin\Debug\net10.0\DevNews.Application.dll
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\bin\Debug\net10.0\DevNews.Application.pdb
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\bin\Debug\net10.0\DevNews.Domain.dll
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\bin\Debug\net10.0\DevNews.Domain.pdb
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\DevNews.Application.csproj.AssemblyReference.cache
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\DevNews.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\DevNews.Application.AssemblyInfoInputs.cache
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\DevNews.Application.AssemblyInfo.cs
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\DevNews.Application.csproj.CoreCompileInputs.cache
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\DevNews.Application.sourcelink.json
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\DevNews..5812E74E.Up2Date
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\DevNews.Application.dll
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\refint\DevNews.Application.dll
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\DevNews.Application.pdb
+C:\Users\david.haland\RiderProjects\dev-news\DevNews.Application\obj\Debug\net10.0\ref\DevNews.Application.dll
