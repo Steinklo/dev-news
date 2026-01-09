@@ -2,7 +2,7 @@
 
 public class ResultResponse<T>(bool isSuccess, T data, string errorMessage)
 {
-    private bool IsSuccess { get; set; } = isSuccess;
+    public bool IsSuccess { get; private set; } = isSuccess;
     public T Data { get; private set; } = data;
     public string ErrorMessage { get; private set; } = errorMessage;
 
