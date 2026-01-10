@@ -1,4 +1,4 @@
-﻿namespace Helsedir.ClinicalDrugs.Application.Common.Exceptions;
+﻿namespace DevNews.Application.Common.Exceptions;
 
 public class NotFoundException : Exception
 {

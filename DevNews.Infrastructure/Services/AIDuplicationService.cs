@@ -43,21 +43,21 @@ public class AiDuplicationService : IDuplicationService
                 endOfMonth,
                 ct);
 
-            if (!sameMonthArticles.IsSuccess || !sameMonthArticles.Data.Any())
+            if (!sameMonthArticles.IsSuccess || !sameMonthArticles.Data!.Any())
             {
                 // No articles to compare against, not a duplicate
                 return ResultResponse<bool>.Success(false);
             }
 
             // Build AI prompt to check for semantic duplicates
-            var promptResult = BuildDuplicationCheckPrompt(article, sameMonthArticles.Data);
+            var promptResult = BuildDuplicationCheckPrompt(article, sameMonthArticles.Data!);
             if (!promptResult.IsSuccess)
             {
                 return ResultResponse<bool>.Failure(promptResult.ErrorMessage);
             }
 
             // Call AI service
-            var aiResponse = await _aiService.GenerateAsync(promptResult.Data, ct);
+            var aiResponse = await _aiService.GenerateAsync(promptResult.Data!, ct);
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
             {
                 // If AI fails, fall back to URL check only

@@ -2,6 +2,7 @@
 using DevNews.Application.Common.Repositories;
 using DevNews.Domain.Common;
 using DevNews.Domain.NewsItem;
+using DevNews.Domain.NewsItem.Enums;
 using Microsoft.Azure.Cosmos;
 
 namespace DevNews.Infrastructure.Repositories;
@@ -78,16 +79,16 @@ public sealed class NewsItemCosmosRepository(CosmosClient client, string databas
     }
 
     public async Task<ResultResponse<IEnumerable<NewsItem>>> GetByCategoryAndDateRangeAsync(
-        string category, 
-        DateTimeOffset startDate, 
-        DateTimeOffset endDate, 
+        CategoryEnum category,
+        DateTimeOffset startDate,
+        DateTimeOffset endDate,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var query = new QueryDefinition(
                 "SELECT * FROM c WHERE c.Category.Value = @category AND c.PublishedAt >= @startDate AND c.PublishedAt < @endDate")
-                .WithParameter("@category", category)
+                .WithParameter("@category", (int)category)
                 .WithParameter("@startDate", startDate.ToString("o"))
                 .WithParameter("@endDate", endDate.ToString("o"));
 
