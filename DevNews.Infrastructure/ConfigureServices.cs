@@ -1,5 +1,7 @@
 using DevNews.Application.Common.Repositories;
+using DevNews.Application.Common.Services;
 using DevNews.Infrastructure.Repositories;
+using DevNews.Infrastructure.Services;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +14,7 @@ public static class ConfigureServices
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Cosmos DB
         services.AddSingleton<CosmosClient>(_ =>
             new CosmosClient(
                 configuration["CosmosDbEndpoint"],
@@ -19,6 +22,21 @@ public static class ConfigureServices
 
         // Repositories
         services.AddScoped<INewsItemRepository, NewsItemCosmosRepository>();
+
+        // Crawl service with options
+        services.Configure<CrawlServiceOptions>(
+            configuration.GetSection(CrawlServiceOptions.SectionName));
+        services.AddHttpClient<ICrawlService, ArticleCrawlService>();
+
+        // Anthropic AI service
+        services.Configure<AnthropicOptions>(
+            configuration.GetSection(AnthropicOptions.SectionName));
+        services.AddSingleton<IAiService, AnthropicAiService>();
+
+        // AI-powered services (depend on IAiService)
+        services.AddScoped<ICurationService, AiCurationService>();
+        services.AddScoped<IDuplicationService, AiDuplicationService>();
+
         return services;
     }
 }
