@@ -23,10 +23,8 @@ public static class ConfigureServices
         // Repositories
         services.AddScoped<INewsItemRepository, NewsItemCosmosRepository>();
 
-        // Crawl service with options
-        services.Configure<CrawlServiceOptions>(
-            configuration.GetSection(CrawlServiceOptions.SectionName));
-        services.AddHttpClient<ICrawlService, ArticleCrawlService>();
+        // Crawl service
+        services.AddHttpClient<ICrawlService, AiCrawlService>();
 
         // Anthropic AI service
         services.Configure<AnthropicOptions>(

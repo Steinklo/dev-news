@@ -2,56 +2,31 @@ using System.ServiceModel.Syndication;
 using System.Xml;
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace DevNews.Infrastructure.Services;
 
-public class CrawlServiceOptions
-{
-    public const string SectionName = "CrawlService";
-
-    /// <summary>
-    /// RSS feed URLs to crawl for developer news
-    /// </summary>
-    public List<string> RssFeedUrls { get; set; } =
-    [
-        "https://news.ycombinator.com/rss",
-        "https://lobste.rs/rss",
-        "https://dev.to/feed",
-        "https://github.blog/feed/",
-        "https://blog.golang.org/feed.atom",
-        "https://devblogs.microsoft.com/dotnet/feed/",
-        "https://kubernetes.io/feed.xml",
-        "https://aws.amazon.com/blogs/aws/feed/",
-        "https://cloud.google.com/blog/rss"
-    ];
-
-    /// <summary>
-    /// Maximum number of articles to fetch per feed
-    /// </summary>
-    public int MaxArticlesPerFeed { get; set; } = 10;
-
-    /// <summary>
-    /// Maximum age of articles to consider (in hours)
-    /// </summary>
-    public int MaxArticleAgeHours { get; set; } = 48;
-}
-
-public class ArticleCrawlService : ICrawlService
+public class AiCrawlService : ICrawlService
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<ArticleCrawlService> _logger;
-    private readonly CrawlServiceOptions _options;
+    private readonly ILogger<AiCrawlService> _logger;
+    private readonly List<string> _rssFeedUrls;
+    private readonly int _maxArticlesPerFeed;
+    private readonly int _maxArticleAgeHours;
 
-    public ArticleCrawlService(
+    public AiCrawlService(
         HttpClient httpClient,
-        ILogger<ArticleCrawlService> logger,
-        IOptions<CrawlServiceOptions> options)
+        ILogger<AiCrawlService> logger,
+        IConfiguration configuration)
     {
         _httpClient = httpClient;
         _logger = logger;
-        _options = options.Value;
+
+        // Read RSS feeds from configuration
+        _rssFeedUrls = configuration.GetSection("CrawlService:RssFeedUrls").Get<List<string>>() ?? [];
+        _maxArticlesPerFeed = configuration.GetValue("CrawlService:MaxArticlesPerFeed", 10);
+        _maxArticleAgeHours = configuration.GetValue("CrawlService:MaxArticleAgeHours", 48);
 
         _httpClient.DefaultRequestHeaders.Clear();
         _httpClient.DefaultRequestHeaders.Add("User-Agent",
@@ -62,14 +37,14 @@ public class ArticleCrawlService : ICrawlService
     public async Task<ResultResponse<IEnumerable<CrawledArticle>>> DiscoverArticlesAsync(CancellationToken ct = default)
     {
         var allArticles = new List<CrawledArticle>();
-        var cutoffTime = DateTimeOffset.UtcNow.AddHours(-_options.MaxArticleAgeHours);
+        var cutoffTime = DateTimeOffset.UtcNow.AddHours(-_maxArticleAgeHours);
 
         _logger.LogInformation(
             "Starting article discovery from {FeedCount} RSS feeds, max age: {MaxAge}h",
-            _options.RssFeedUrls.Count,
-            _options.MaxArticleAgeHours);
+            _rssFeedUrls.Count,
+            _maxArticleAgeHours);
 
-        foreach (var feedUrl in _options.RssFeedUrls)
+        foreach (var feedUrl in _rssFeedUrls)
         {
             ct.ThrowIfCancellationRequested();
 
@@ -126,7 +101,7 @@ public class ArticleCrawlService : ICrawlService
         // Process feed items
         var recentItems = feed.Items
             .Where(item => item.PublishDate >= cutoffTime || item.LastUpdatedTime >= cutoffTime)
-            .Take(_options.MaxArticlesPerFeed)
+            .Take(_maxArticlesPerFeed)
             .ToList();
 
         foreach (var item in recentItems)
