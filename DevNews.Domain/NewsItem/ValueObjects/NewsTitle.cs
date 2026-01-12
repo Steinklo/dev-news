@@ -8,8 +8,16 @@ namespace DevNews.Domain.NewsItem.ValueObjects;
 public class NewsTitle : ValueObject
 {
     public string Value { get; private set; }
-    public const int MaxLength = 50;
-    public const int MinLength = 1;
+
+    /// <summary>
+    /// Maximum title length - aligned with CurationRules
+    /// </summary>
+    public const int MaxLength = 100;
+
+    /// <summary>
+    /// Minimum title length - aligned with CurationRules
+    /// </summary>
+    public const int MinLength = 20;
 
     private NewsTitle(string value)
     {

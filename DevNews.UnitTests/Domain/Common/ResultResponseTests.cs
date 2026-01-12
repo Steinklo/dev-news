@@ -1,5 +1,4 @@
 using DevNews.Domain.Common;
-using FluentAssertions;
 
 namespace DevNews.UnitTests.Domain.Common;
 
@@ -12,9 +11,9 @@ public class ResultResponseTests
 
         var result = ResultResponse<string>.Success(data);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data.Should().Be(data);
-        result.ErrorMessage.Should().BeNull();
+        Assert.True(result.IsSuccess);
+        Assert.Equal(data, result.Data);
+        Assert.Null(result.ErrorMessage);
     }
 
     [Fact]
@@ -24,9 +23,9 @@ public class ResultResponseTests
 
         var result = ResultResponse<string>.Failure(errorMessage);
 
-        result.IsSuccess.Should().BeFalse();
-        result.Data.Should().BeNull();
-        result.ErrorMessage.Should().Be(errorMessage);
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Data);
+        Assert.Equal(errorMessage, result.ErrorMessage);
     }
 
     [Fact]
@@ -34,8 +33,8 @@ public class ResultResponseTests
     {
         var result = ResultResponse<string>.Failure(null);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Unknown error");
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Unknown error", result.ErrorMessage);
     }
 
     [Fact]
@@ -43,7 +42,7 @@ public class ResultResponseTests
     {
         var result = ResultResponse<string>.Success("test");
 
-        result.ToString().Should().Be("Success: test");
+        Assert.Equal("Success: test", result.ToString());
     }
 
     [Fact]
@@ -51,7 +50,7 @@ public class ResultResponseTests
     {
         var result = ResultResponse<string>.Failure("error");
 
-        result.ToString().Should().Be("Failure: error");
+        Assert.Equal("Failure: error", result.ToString());
     }
 
     [Fact]
@@ -61,8 +60,8 @@ public class ResultResponseTests
 
         var result = ResultResponse<object>.Success(data);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data.Should().Be(data);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(data, result.Data);
     }
 
     [Fact]
@@ -70,7 +69,7 @@ public class ResultResponseTests
     {
         var result = ResultResponse<int>.Failure("error");
 
-        result.IsSuccess.Should().BeFalse();
-        result.Data.Should().Be(default(int));
+        Assert.False(result.IsSuccess);
+        Assert.Equal(default(int), result.Data);
     }
 }

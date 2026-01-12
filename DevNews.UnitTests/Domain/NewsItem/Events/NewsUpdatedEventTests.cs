@@ -1,16 +1,23 @@
 using DevNews.Domain.NewsItem.Enums;
 using DevNews.Domain.NewsItem.Events;
-using FluentAssertions;
 
 namespace DevNews.UnitTests.Domain.NewsItem.Events;
 
 public class NewsUpdatedEventTests
 {
+    // 80+ words (~400 chars) per CLAUDE.md spec for TL;DR summaries
+    private const string ValidSummary = "This comprehensive security advisory details a critical remote code execution vulnerability " +
+                                         "discovered in the widely-used OpenSSL cryptographic library. The flaw, identified as CVE-2026-1234, " +
+                                         "affects versions 3.0 through 3.2.1 and allows unauthenticated attackers to execute arbitrary code " +
+                                         "on vulnerable systems. Organizations running affected versions should immediately upgrade to the " +
+                                         "patched release 3.2.2. The vulnerability was responsibly disclosed by security researchers and " +
+                                         "has been assigned a CVSS score of 9.8 indicating critical severity.";
+
     private static DevNews.Domain.NewsItem.NewsItem CreateValidNewsItem()
     {
         return DevNews.Domain.NewsItem.NewsItem.Create(
-            title: "Test News Title",
-            summary: "This is a test summary that meets the minimum length requirement.",
+            title: "Critical Security Vulnerability Alert",
+            summary: ValidSummary,
             url: "https://example.com/article",
             category: CategoryEnum.CloudAndInfrastructure,
             relevanceScore: 65).Data!;
@@ -23,7 +30,7 @@ public class NewsUpdatedEventTests
 
         var evt = new NewsUpdatedEvent(newsItem);
 
-        evt.NewsItem.Should().Be(newsItem);
+        Assert.Equal(newsItem, evt.NewsItem);
     }
 
     [Fact]
@@ -33,7 +40,7 @@ public class NewsUpdatedEventTests
 
         var evt = new NewsUpdatedEvent(newsItem);
 
-        evt.AggregateId.Should().Be(newsItem.Id);
+        Assert.Equal(newsItem.Id, evt.AggregateId);
     }
 
     [Fact]
@@ -44,8 +51,8 @@ public class NewsUpdatedEventTests
         var evt1 = new NewsUpdatedEvent(newsItem);
         var evt2 = new NewsUpdatedEvent(newsItem);
 
-        evt1.Id.Should().NotBe(evt2.Id);
-        evt1.Id.Should().NotBe(Guid.Empty);
+        Assert.NotEqual(evt1.Id, evt2.Id);
+        Assert.NotEqual(Guid.Empty, evt1.Id);
     }
 
     [Fact]
@@ -56,8 +63,8 @@ public class NewsUpdatedEventTests
 
         var evt = new NewsUpdatedEvent(newsItem);
 
-        evt.CreatedAt.Should().BeOnOrAfter(before);
-        evt.CreatedAt.Should().BeOnOrBefore(DateTime.UtcNow);
+        Assert.True(evt.CreatedAt >= before);
+        Assert.True(evt.CreatedAt <= DateTime.UtcNow);
     }
 
     [Fact]
@@ -67,6 +74,6 @@ public class NewsUpdatedEventTests
 
         var evt = new NewsUpdatedEvent(newsItem);
 
-        evt.Created.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        Assert.True(Math.Abs((evt.Created - DateTime.UtcNow).TotalSeconds) < 1);
     }
 }

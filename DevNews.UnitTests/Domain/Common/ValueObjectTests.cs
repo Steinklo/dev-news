@@ -1,5 +1,4 @@
 using DevNews.Domain.Common;
-using FluentAssertions;
 
 namespace DevNews.UnitTests.Domain.Common;
 
@@ -29,7 +28,7 @@ public class ValueObjectTests
         var vo1 = new TestValueObject("test", 42);
         var vo2 = new TestValueObject("test", 42);
 
-        vo1.Equals(vo2).Should().BeTrue();
+        Assert.True(vo1.Equals(vo2));
     }
 
     [Fact]
@@ -38,7 +37,7 @@ public class ValueObjectTests
         var vo1 = new TestValueObject("test", 42);
         var vo2 = new TestValueObject("different", 42);
 
-        vo1.Equals(vo2).Should().BeFalse();
+        Assert.False(vo1.Equals(vo2));
     }
 
     [Fact]
@@ -46,7 +45,7 @@ public class ValueObjectTests
     {
         var vo = new TestValueObject("test", 42);
 
-        vo.Equals(null).Should().BeFalse();
+        Assert.False(vo.Equals(null));
     }
 
     [Fact]
@@ -54,7 +53,7 @@ public class ValueObjectTests
     {
         var vo = new TestValueObject("test", 42);
 
-        vo.Equals(vo).Should().BeTrue();
+        Assert.True(vo.Equals(vo));
     }
 
     [Fact]
@@ -63,7 +62,7 @@ public class ValueObjectTests
         var vo1 = new TestValueObject("test", 42);
         object vo2 = new TestValueObject("test", 42);
 
-        vo1.Equals(vo2).Should().BeTrue();
+        Assert.True(vo1.Equals(vo2));
     }
 
     [Fact]
@@ -72,7 +71,7 @@ public class ValueObjectTests
         var vo = new TestValueObject("test", 42);
         object? nullObj = null;
 
-        vo.Equals(nullObj).Should().BeFalse();
+        Assert.False(vo.Equals(nullObj));
     }
 
     [Fact]
@@ -81,7 +80,7 @@ public class ValueObjectTests
         var vo1 = new TestValueObject("test", 42);
         var vo2 = new TestValueObject("test", 42);
 
-        vo1.GetHashCode().Should().Be(vo2.GetHashCode());
+        Assert.Equal(vo1.GetHashCode(), vo2.GetHashCode());
     }
 
     [Fact]
@@ -90,6 +89,6 @@ public class ValueObjectTests
         var vo1 = new TestValueObject("test", 42);
         var vo2 = new TestValueObject("different", 99);
 
-        vo1.GetHashCode().Should().NotBe(vo2.GetHashCode());
+        Assert.NotEqual(vo1.GetHashCode(), vo2.GetHashCode());
     }
 }

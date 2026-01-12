@@ -1,5 +1,4 @@
 using DevNews.Domain.NewsItem.ValueObjects;
-using FluentAssertions;
 
 namespace DevNews.UnitTests.Domain.NewsItem.ValueObjects;
 
@@ -8,19 +7,21 @@ public class NewsTitleTests
     [Fact]
     public void Create_ValidTitle_ReturnsSuccess()
     {
-        var result = NewsTitle.Create("Valid Title");
+        var title = "Critical OpenSSL Vulnerability Discovered";
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Should().Be("Valid Title");
+        var result = NewsTitle.Create(title);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(title, result.Data!.Value);
     }
 
     [Fact]
     public void Create_TrimsWhitespace()
     {
-        var result = NewsTitle.Create("  Title with spaces  ");
+        var result = NewsTitle.Create("  Security Advisory for Node.js  ");
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Should().Be("Title with spaces");
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Security Advisory for Node.js", result.Data!.Value);
     }
 
     [Theory]
@@ -31,8 +32,8 @@ public class NewsTitleTests
     {
         var result = NewsTitle.Create(title!);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Title cannot be empty");
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Title cannot be empty", result.ErrorMessage);
     }
 
     [Fact]
@@ -42,8 +43,8 @@ public class NewsTitleTests
 
         var result = NewsTitle.Create(longTitle);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain($"{NewsTitle.MaxLength}");
+        Assert.False(result.IsSuccess);
+        Assert.Contains($"{NewsTitle.MaxLength}", result.ErrorMessage);
     }
 
     [Fact]
@@ -53,8 +54,8 @@ public class NewsTitleTests
 
         var result = NewsTitle.Create(exactTitle);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Length.Should().Be(NewsTitle.MaxLength);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(NewsTitle.MaxLength, result.Data!.Value.Length);
     }
 
     [Fact]
@@ -64,50 +65,65 @@ public class NewsTitleTests
 
         var result = NewsTitle.Create(minTitle);
 
-        result.IsSuccess.Should().BeTrue();
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public void Create_BelowMinLength_ReturnsFailure()
+    {
+        var shortTitle = new string('a', NewsTitle.MinLength - 1);
+
+        var result = NewsTitle.Create(shortTitle);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains($"{NewsTitle.MinLength}", result.ErrorMessage);
     }
 
     [Fact]
     public void ImplicitConversion_ToString_ReturnsValue()
     {
-        var result = NewsTitle.Create("Test Title");
+        var title = "Kubernetes 1.30 Release Notes";
+        var result = NewsTitle.Create(title);
         string value = result.Data!;
 
-        value.Should().Be("Test Title");
+        Assert.Equal(title, value);
     }
 
     [Fact]
     public void ToString_ReturnsValue()
     {
-        var result = NewsTitle.Create("Test Title");
+        var title = "Docker Security Best Practices";
+        var result = NewsTitle.Create(title);
 
-        result.Data!.ToString().Should().Be("Test Title");
+        Assert.Equal(title, result.Data!.ToString());
     }
 
     [Fact]
     public void Equals_SameTitle_ReturnsTrue()
     {
-        var title1 = NewsTitle.Create("Same Title").Data!;
-        var title2 = NewsTitle.Create("Same Title").Data!;
+        var title = "React 19 Breaking Changes";
+        var title1 = NewsTitle.Create(title).Data!;
+        var title2 = NewsTitle.Create(title).Data!;
 
-        title1.Equals(title2).Should().BeTrue();
+        Assert.True(title1.Equals(title2));
     }
 
     [Fact]
     public void Equals_DifferentTitle_ReturnsFalse()
     {
-        var title1 = NewsTitle.Create("Title One").Data!;
-        var title2 = NewsTitle.Create("Title Two").Data!;
+        var title1 = NewsTitle.Create("Go 1.24 Performance Updates").Data!;
+        var title2 = NewsTitle.Create("Rust 2.0 Memory Safety Fix").Data!;
 
-        title1.Equals(title2).Should().BeFalse();
+        Assert.False(title1.Equals(title2));
     }
 
     [Fact]
     public void GetHashCode_SameTitle_ReturnsSameHash()
     {
-        var title1 = NewsTitle.Create("Same Title").Data!;
-        var title2 = NewsTitle.Create("Same Title").Data!;
+        var title = "AWS Lambda Cold Start Fixes";
+        var title1 = NewsTitle.Create(title).Data!;
+        var title2 = NewsTitle.Create(title).Data!;
 
-        title1.GetHashCode().Should().Be(title2.GetHashCode());
+        Assert.Equal(title1.GetHashCode(), title2.GetHashCode());
     }
 }

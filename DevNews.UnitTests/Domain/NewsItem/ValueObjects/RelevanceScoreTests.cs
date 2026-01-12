@@ -1,5 +1,4 @@
 using DevNews.Domain.NewsItem.ValueObjects;
-using FluentAssertions;
 
 namespace DevNews.UnitTests.Domain.NewsItem.ValueObjects;
 
@@ -15,8 +14,8 @@ public class RelevanceScoreTests
     {
         var result = RelevanceScore.Create(score);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Should().Be(score);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(score, result.Data!.Value);
     }
 
     [Theory]
@@ -27,8 +26,8 @@ public class RelevanceScoreTests
     {
         var result = RelevanceScore.Create(score);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Relevance score must be between 0 and 100");
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Relevance score must be between 0 and 100", result.ErrorMessage);
     }
 
     [Theory]
@@ -39,8 +38,8 @@ public class RelevanceScoreTests
     {
         var result = RelevanceScore.Create(score);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Relevance score must be between 0 and 100");
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Relevance score must be between 0 and 100", result.ErrorMessage);
     }
 
     [Fact]
@@ -49,7 +48,7 @@ public class RelevanceScoreTests
         var result = RelevanceScore.Create(75);
         int value = result.Data!;
 
-        value.Should().Be(75);
+        Assert.Equal(75, value);
     }
 
     [Fact]
@@ -57,7 +56,7 @@ public class RelevanceScoreTests
     {
         var result = RelevanceScore.Create(42);
 
-        result.Data!.ToString().Should().Be("42");
+        Assert.Equal("42", result.Data!.ToString());
     }
 
     [Fact]
@@ -66,7 +65,7 @@ public class RelevanceScoreTests
         var score1 = RelevanceScore.Create(85).Data!;
         var score2 = RelevanceScore.Create(85).Data!;
 
-        score1.Equals(score2).Should().BeTrue();
+        Assert.True(score1.Equals(score2));
     }
 
     [Fact]
@@ -75,7 +74,7 @@ public class RelevanceScoreTests
         var score1 = RelevanceScore.Create(85).Data!;
         var score2 = RelevanceScore.Create(15).Data!;
 
-        score1.Equals(score2).Should().BeFalse();
+        Assert.False(score1.Equals(score2));
     }
 
     [Fact]
@@ -84,7 +83,7 @@ public class RelevanceScoreTests
         var score1 = RelevanceScore.Create(50).Data!;
         var score2 = RelevanceScore.Create(50).Data!;
 
-        score1.GetHashCode().Should().Be(score2.GetHashCode());
+        Assert.Equal(score1.GetHashCode(), score2.GetHashCode());
     }
 
     [Fact]
@@ -93,6 +92,6 @@ public class RelevanceScoreTests
         var score1 = RelevanceScore.Create(25).Data!;
         var score2 = RelevanceScore.Create(75).Data!;
 
-        score1.GetHashCode().Should().NotBe(score2.GetHashCode());
+        Assert.NotEqual(score1.GetHashCode(), score2.GetHashCode());
     }
 }

@@ -1,5 +1,4 @@
 using DevNews.Domain.Common;
-using FluentAssertions;
 
 namespace DevNews.UnitTests.Domain.Common;
 
@@ -23,9 +22,9 @@ public class EntityTests
 
         var entity = new TestEntity(id, "Test");
 
-        entity.Id.Should().Be(id);
-        entity.Created.Should().BeOnOrAfter(beforeCreation);
-        entity.Created.Should().BeOnOrBefore(DateTime.UtcNow);
+        Assert.Equal(id, entity.Id);
+        Assert.True(entity.Created >= beforeCreation);
+        Assert.True(entity.Created <= DateTime.UtcNow);
     }
 
     [Fact]
@@ -35,7 +34,7 @@ public class EntityTests
         var entity1 = new TestEntity(id, "Name1");
         var entity2 = new TestEntity(id, "Name2");
 
-        entity1.Equals(entity2).Should().BeTrue();
+        Assert.True(entity1.Equals(entity2));
     }
 
     [Fact]
@@ -44,7 +43,7 @@ public class EntityTests
         var entity1 = new TestEntity(Guid.NewGuid(), "Name");
         var entity2 = new TestEntity(Guid.NewGuid(), "Name");
 
-        entity1.Equals(entity2).Should().BeFalse();
+        Assert.False(entity1.Equals(entity2));
     }
 
     [Fact]
@@ -52,7 +51,7 @@ public class EntityTests
     {
         var entity = new TestEntity(Guid.NewGuid(), "Name");
 
-        entity.Equals(null).Should().BeFalse();
+        Assert.False(entity.Equals(null));
     }
 
     [Fact]
@@ -62,7 +61,7 @@ public class EntityTests
         var entity1 = new TestEntity(id, "Name1");
         var entity2 = new TestEntity(id, "Name2");
 
-        entity1.GetHashCode().Should().Be(entity2.GetHashCode());
+        Assert.Equal(entity1.GetHashCode(), entity2.GetHashCode());
     }
 
     [Fact]
@@ -71,6 +70,6 @@ public class EntityTests
         var entity1 = new TestEntity(Guid.NewGuid(), "Name");
         var entity2 = new TestEntity(Guid.NewGuid(), "Name");
 
-        entity1.GetHashCode().Should().NotBe(entity2.GetHashCode());
+        Assert.NotEqual(entity1.GetHashCode(), entity2.GetHashCode());
     }
 }

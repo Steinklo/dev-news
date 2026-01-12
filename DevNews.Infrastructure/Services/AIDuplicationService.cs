@@ -7,6 +7,11 @@ using DevNews.Domain.Common.Models;
 
 namespace DevNews.Infrastructure.Services;
 
+/// <summary>
+/// Deduplication service using:
+/// 1. Exact URL match (fast path)
+/// 2. AI semantic check (catches rephrased duplicates)
+/// </summary>
 public class AiDuplicationService : IDuplicationService
 {
     private readonly IAiService _aiService;
@@ -22,21 +27,18 @@ public class AiDuplicationService : IDuplicationService
     {
         try
         {
-            // First check for exact URL match
+            // TIER 1: Exact URL match (fastest)
             var existingByUrl = await _repository.GetByUrlAsync(article.Url.ToString(), ct);
             if (existingByUrl.IsSuccess && existingByUrl.Data != null)
             {
                 return ResultResponse<bool>.Success(true);
             }
 
-            // Determine the date to use (PublishedAt or current date)
+            // TIER 2: AI semantic check
             var articleDate = article.PublishedAt ?? DateTimeOffset.UtcNow;
-
-            // Get start and end of the month for the article
             var startOfMonth = new DateTimeOffset(articleDate.Year, articleDate.Month, 1, 0, 0, 0, articleDate.Offset);
             var endOfMonth = startOfMonth.AddMonths(1);
 
-            // Get articles from same category and same month/year
             var sameMonthArticles = await _repository.GetByCategoryAndDateRangeAsync(
                 article.Category,
                 startOfMonth,
@@ -45,30 +47,25 @@ public class AiDuplicationService : IDuplicationService
 
             if (!sameMonthArticles.IsSuccess || !sameMonthArticles.Data!.Any())
             {
-                // No articles to compare against, not a duplicate
                 return ResultResponse<bool>.Success(false);
             }
 
-            // Build AI prompt to check for semantic duplicates
             var promptResult = BuildDuplicationCheckPrompt(article, sameMonthArticles.Data!);
             if (!promptResult.IsSuccess)
             {
                 return ResultResponse<bool>.Failure(promptResult.ErrorMessage);
             }
 
-            // Call AI service
             var aiResponse = await _aiService.GenerateAsync(promptResult.Data!, ct);
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
             {
-                // If AI fails, fall back to URL check only
+                // If AI fails, fail open (assume not duplicate)
                 return ResultResponse<bool>.Success(false);
             }
 
-            // Parse AI response
             var parseResult = ParseAiResponse(aiResponse.Data);
             if (!parseResult.IsSuccess)
             {
-                // If parsing fails, assume not duplicate (fail open)
                 return ResultResponse<bool>.Success(false);
             }
 

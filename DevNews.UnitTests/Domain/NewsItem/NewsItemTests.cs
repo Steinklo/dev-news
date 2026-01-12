@@ -1,13 +1,18 @@
 using DevNews.Domain.NewsItem.Enums;
 using DevNews.Domain.NewsItem.Events;
-using FluentAssertions;
 
 namespace DevNews.UnitTests.Domain.NewsItem;
 
 public class NewsItemTests
 {
     private const string ValidTitle = "Critical Security Vulnerability in OpenSSL";
-    private const string ValidSummary = "A critical security vulnerability has been discovered in OpenSSL that allows remote code execution.";
+    // 80+ words (~400 chars) per CLAUDE.md spec for TL;DR summaries
+    private const string ValidSummary = "This comprehensive security advisory details a critical remote code execution vulnerability " +
+                                         "discovered in the widely-used OpenSSL cryptographic library. The flaw, identified as CVE-2026-1234, " +
+                                         "affects versions 3.0 through 3.2.1 and allows unauthenticated attackers to execute arbitrary code " +
+                                         "on vulnerable systems. Organizations running affected versions should immediately upgrade to the " +
+                                         "patched release 3.2.2. The vulnerability was responsibly disclosed by security researchers and " +
+                                         "has been assigned a CVSS score of 9.8 indicating critical severity.";
     private const string ValidUrl = "https://example.com/security-advisory";
     private const int ValidRelevanceScore = 85;
     private static readonly CategoryEnum ValidCategory = CategoryEnum.SecurityAndVulnerabilities;
@@ -22,8 +27,8 @@ public class NewsItemTests
             category: ValidCategory,
             relevanceScore: ValidRelevanceScore);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data.Should().NotBeNull();
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
     }
 
     [Fact]
@@ -40,14 +45,14 @@ public class NewsItemTests
             publishedAt: publishedAt);
 
         var newsItem = result.Data!;
-        newsItem.Title.Value.Should().Be(ValidTitle);
-        newsItem.Summary.Value.Should().Be(ValidSummary);
-        newsItem.Url.Value.Should().Be(ValidUrl);
-        newsItem.Category.Value.Should().Be(ValidCategory);
-        newsItem.RelevanceScore.Value.Should().Be(ValidRelevanceScore);
-        newsItem.PublishedAt.Should().Be(publishedAt);
-        newsItem.CreatedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(1));
-        newsItem.UpdatedAt.Should().BeNull();
+        Assert.Equal(ValidTitle, newsItem.Title.Value);
+        Assert.Equal(ValidSummary, newsItem.Summary.Value);
+        Assert.Equal(ValidUrl, newsItem.Url.Value);
+        Assert.Equal(ValidCategory, newsItem.Category.Value);
+        Assert.Equal(ValidRelevanceScore, newsItem.RelevanceScore.Value);
+        Assert.Equal(publishedAt, newsItem.PublishedAt);
+        Assert.True(Math.Abs((newsItem.CreatedAt - DateTimeOffset.UtcNow).TotalSeconds) < 1);
+        Assert.Null(newsItem.UpdatedAt);
     }
 
     [Fact]
@@ -60,7 +65,7 @@ public class NewsItemTests
             category: ValidCategory,
             relevanceScore: ValidRelevanceScore);
 
-        result.Data!.Id.Should().NotBe(Guid.Empty);
+        Assert.NotEqual(Guid.Empty, result.Data!.Id);
     }
 
     [Fact]
@@ -74,8 +79,8 @@ public class NewsItemTests
             relevanceScore: ValidRelevanceScore);
 
         var newsItem = result.Data!;
-        newsItem.DomainEvents.Should().HaveCount(1);
-        newsItem.DomainEvents.First().Should().BeOfType<NewsCreatedEvent>();
+        Assert.Single(newsItem.DomainEvents);
+        Assert.IsType<NewsCreatedEvent>(newsItem.DomainEvents.First());
     }
 
     [Fact]
@@ -91,7 +96,7 @@ public class NewsItemTests
         var newsItem = result.Data!;
         newsItem.ClearDomainEvents();
 
-        newsItem.DomainEvents.Should().BeEmpty();
+        Assert.Empty(newsItem.DomainEvents);
     }
 
     [Theory]
@@ -106,13 +111,13 @@ public class NewsItemTests
             category: ValidCategory,
             relevanceScore: ValidRelevanceScore);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("Title");
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Title", result.ErrorMessage);
     }
 
     [Theory]
     [InlineData("")]
-    [InlineData("short")]
+    [InlineData("This summary is too short to meet the 80-word minimum requirement per CLAUDE.md specification.")]
     public void Create_WithInvalidSummary_ReturnsFailure(string summary)
     {
         var result = DevNews.Domain.NewsItem.NewsItem.Create(
@@ -122,8 +127,8 @@ public class NewsItemTests
             category: ValidCategory,
             relevanceScore: ValidRelevanceScore);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("Summary");
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Summary", result.ErrorMessage);
     }
 
     [Theory]
@@ -139,8 +144,8 @@ public class NewsItemTests
             category: ValidCategory,
             relevanceScore: ValidRelevanceScore);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("URL");
+        Assert.False(result.IsSuccess);
+        Assert.Contains("URL", result.ErrorMessage);
     }
 
     [Theory]
@@ -155,8 +160,8 @@ public class NewsItemTests
             category: ValidCategory,
             relevanceScore: score);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("Relevance");
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Relevance", result.ErrorMessage);
     }
 
     [Fact]
@@ -171,8 +176,8 @@ public class NewsItemTests
             category: invalidCategory,
             relevanceScore: ValidRelevanceScore);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("category");
+        Assert.False(result.IsSuccess);
+        Assert.Contains("category", result.ErrorMessage);
     }
 
     [Fact]
@@ -186,8 +191,8 @@ public class NewsItemTests
             relevanceScore: ValidRelevanceScore,
             severity: SeverityEnum.Critical);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Severity.Should().Be(SeverityEnum.Critical);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(SeverityEnum.Critical, result.Data!.Severity);
     }
 
     [Theory]
@@ -208,8 +213,8 @@ public class NewsItemTests
             relevanceScore: ValidRelevanceScore,
             severity: SeverityEnum.High);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain("Severity can only be set for SecurityAndVulnerabilities");
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Severity can only be set for SecurityAndVulnerabilities", result.ErrorMessage);
     }
 
     [Fact]
@@ -225,11 +230,15 @@ public class NewsItemTests
             relevanceScore: ValidRelevanceScore,
             tags: tags);
 
-        result.Data!.Tags.Should().BeEquivalentTo(tags);
+        Assert.Equal(tags.Length, result.Data!.Tags.Count);
+        foreach (var tag in tags)
+        {
+            Assert.Contains(tag, result.Data!.Tags);
+        }
     }
 
     [Fact]
-    public void Create_WithMoreThan5Tags_OnlyStoresFirst5()
+    public void Create_WithManyTags_StoresAllTags()
     {
         var tags = new[] { "tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7" };
 
@@ -241,8 +250,11 @@ public class NewsItemTests
             relevanceScore: ValidRelevanceScore,
             tags: tags);
 
-        result.Data!.Tags.Should().HaveCount(5);
-        result.Data!.Tags.Should().BeEquivalentTo(tags.Take(5));
+        Assert.Equal(7, result.Data!.Tags.Count);
+        foreach (var tag in tags)
+        {
+            Assert.Contains(tag, result.Data!.Tags);
+        }
     }
 
     [Fact]
@@ -256,7 +268,7 @@ public class NewsItemTests
             relevanceScore: ValidRelevanceScore,
             tags: null);
 
-        result.Data!.Tags.Should().BeEmpty();
+        Assert.Empty(result.Data!.Tags);
     }
 
     [Fact]
@@ -270,8 +282,8 @@ public class NewsItemTests
             relevanceScore: ValidRelevanceScore,
             severity: null);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Severity.Should().BeNull();
+        Assert.True(result.IsSuccess);
+        Assert.Null(result.Data!.Severity);
     }
 
     [Theory]
@@ -289,7 +301,7 @@ public class NewsItemTests
             relevanceScore: ValidRelevanceScore,
             severity: severity);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Severity.Should().Be(severity);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(severity, result.Data!.Severity);
     }
 }

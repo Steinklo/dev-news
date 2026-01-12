@@ -1,5 +1,4 @@
 using DevNews.Domain.NewsItem.ValueObjects;
-using FluentAssertions;
 
 namespace DevNews.UnitTests.Domain.NewsItem.ValueObjects;
 
@@ -14,8 +13,8 @@ public class NewsUrlTests
     {
         var result = NewsUrl.Create(url);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data.Should().NotBeNull();
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
     }
 
     [Theory]
@@ -26,8 +25,8 @@ public class NewsUrlTests
     {
         var result = NewsUrl.Create(url!);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Be("URL cannot be empty");
+        Assert.False(result.IsSuccess);
+        Assert.Equal("URL cannot be empty", result.ErrorMessage);
     }
 
     [Theory]
@@ -38,8 +37,8 @@ public class NewsUrlTests
     {
         var result = NewsUrl.Create(url);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Be("URL must be a valid absolute URL");
+        Assert.False(result.IsSuccess);
+        Assert.Equal("URL must be a valid absolute URL", result.ErrorMessage);
     }
 
     [Theory]
@@ -50,8 +49,8 @@ public class NewsUrlTests
     {
         var result = NewsUrl.Create(url);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Be("URL must use HTTP or HTTPS protocol");
+        Assert.False(result.IsSuccess);
+        Assert.Equal("URL must use HTTP or HTTPS protocol", result.ErrorMessage);
     }
 
     [Fact]
@@ -59,8 +58,8 @@ public class NewsUrlTests
     {
         var result = NewsUrl.Create("https://example.com/");
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Should().Be("https://example.com");
+        Assert.True(result.IsSuccess);
+        Assert.Equal("https://example.com", result.Data!.Value);
     }
 
     [Fact]
@@ -68,8 +67,8 @@ public class NewsUrlTests
     {
         var result = NewsUrl.Create("https://example.com/path/");
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Should().Be("https://example.com/path");
+        Assert.True(result.IsSuccess);
+        Assert.Equal("https://example.com/path", result.Data!.Value);
     }
 
     [Fact]
@@ -78,7 +77,7 @@ public class NewsUrlTests
         var result = NewsUrl.Create("https://example.com/article");
         string value = result.Data!;
 
-        value.Should().Be("https://example.com/article");
+        Assert.Equal("https://example.com/article", value);
     }
 
     [Fact]
@@ -86,7 +85,7 @@ public class NewsUrlTests
     {
         var result = NewsUrl.Create("https://example.com");
 
-        result.Data!.ToString().Should().Be("https://example.com");
+        Assert.Equal("https://example.com", result.Data!.ToString());
     }
 
     [Fact]
@@ -95,7 +94,7 @@ public class NewsUrlTests
         var url1 = NewsUrl.Create("https://example.com").Data!;
         var url2 = NewsUrl.Create("https://example.com").Data!;
 
-        url1.Equals(url2).Should().BeTrue();
+        Assert.True(url1.Equals(url2));
     }
 
     [Fact]
@@ -104,7 +103,7 @@ public class NewsUrlTests
         var url1 = NewsUrl.Create("https://EXAMPLE.com").Data!;
         var url2 = NewsUrl.Create("https://example.COM").Data!;
 
-        url1.Equals(url2).Should().BeTrue();
+        Assert.True(url1.Equals(url2));
     }
 
     [Fact]
@@ -113,7 +112,7 @@ public class NewsUrlTests
         var url1 = NewsUrl.Create("https://example.com").Data!;
         var url2 = NewsUrl.Create("https://different.com").Data!;
 
-        url1.Equals(url2).Should().BeFalse();
+        Assert.False(url1.Equals(url2));
     }
 
     [Fact]
@@ -122,7 +121,7 @@ public class NewsUrlTests
         var url1 = NewsUrl.Create("https://example.com").Data!;
         var url2 = NewsUrl.Create("https://example.com").Data!;
 
-        url1.GetHashCode().Should().Be(url2.GetHashCode());
+        Assert.Equal(url1.GetHashCode(), url2.GetHashCode());
     }
 
     [Fact]
@@ -131,6 +130,6 @@ public class NewsUrlTests
         var url1 = NewsUrl.Create("https://EXAMPLE.com").Data!;
         var url2 = NewsUrl.Create("https://example.com").Data!;
 
-        url1.GetHashCode().Should().Be(url2.GetHashCode());
+        Assert.Equal(url1.GetHashCode(), url2.GetHashCode());
     }
 }

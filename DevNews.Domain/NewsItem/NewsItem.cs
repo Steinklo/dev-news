@@ -60,7 +60,7 @@ public class NewsItem : AggregateRoot<Guid>
         RelevanceScore = relevanceScore;
         Severity = severity;
         if (tags != null)
-            _tags.AddRange(tags.Take(5)); // Max 5 tags per spec
+            _tags.AddRange(tags);
         PublishedAt = publishedAt;
         CreatedAt = DateTimeOffset.UtcNow;
     }

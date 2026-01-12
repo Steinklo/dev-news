@@ -21,7 +21,13 @@ public static class ConfigureServices
                 configuration["CosmosDbKey"]));
 
         // Repositories
-        services.AddScoped<INewsItemRepository, NewsItemCosmosRepository>();
+        services.AddScoped<INewsItemRepository>(sp =>
+        {
+            var cosmosClient = sp.GetRequiredService<CosmosClient>();
+            var databaseId = configuration["CosmosDbDatabaseId"] ?? "DevNews";
+            var containerId = configuration["CosmosDbContainerId"] ?? "NewsItems";
+            return new NewsItemCosmosRepository(cosmosClient, databaseId, containerId);
+        });
 
         // Crawl service
         services.AddHttpClient<ICrawlService, AiCrawlService>();
@@ -31,7 +37,7 @@ public static class ConfigureServices
             configuration.GetSection(AnthropicOptions.SectionName));
         services.AddSingleton<IAiService, AnthropicAiService>();
 
-        // AI-powered services (depend on IAiService)
+        // AI-powered services
         services.AddScoped<ICurationService, AiCurationService>();
         services.AddScoped<IDuplicationService, AiDuplicationService>();
 

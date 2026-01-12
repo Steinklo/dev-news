@@ -110,6 +110,38 @@ public sealed class NewsItemCosmosRepository(CosmosClient client, string databas
         }
     }
 
+    public async Task<ResultResponse<IEnumerable<NewsItem>>> GetByDateRangeAsync(
+        DateTimeOffset startDate,
+        DateTimeOffset endDate,
+        int limit = 500,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = new QueryDefinition(
+                "SELECT * FROM c WHERE c.CreatedAt >= @startDate AND c.CreatedAt < @endDate ORDER BY c.CreatedAt DESC OFFSET 0 LIMIT @limit")
+                .WithParameter("@startDate", startDate.ToString("o"))
+                .WithParameter("@endDate", endDate.ToString("o"))
+                .WithParameter("@limit", limit);
+
+            var iterator = _container.GetItemQueryIterator<NewsItem>(query);
+            var results = new List<NewsItem>();
+
+            while (iterator.HasMoreResults)
+            {
+                var response = await iterator.ReadNextAsync(cancellationToken);
+                results.AddRange(response);
+            }
+
+            return ResultResponse<IEnumerable<NewsItem>>.Success(results);
+        }
+        catch (Exception ex)
+        {
+            return ResultResponse<IEnumerable<NewsItem>>.Failure(
+                $"Failed to fetch NewsItems by date range: {ex.Message}");
+        }
+    }
+
     public async Task<ResultResponse<NewsItem>> AddAsync(NewsItem newsItem,
         CancellationToken cancellationToken = default)
     {

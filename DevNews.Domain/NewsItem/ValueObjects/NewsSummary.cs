@@ -8,8 +8,18 @@ namespace DevNews.Domain.NewsItem.ValueObjects;
 public class NewsSummary : ValueObject
 {
     public string Value { get; private set; }
-    public const int MaxLength = 500;
-    public const int MinLength = 10;
+
+    /// <summary>
+    /// Maximum length in characters (~160 words at 5 chars/word average)
+    /// Per CLAUDE.md: TL;DR must be 80-160 words max, dense, no fluff
+    /// </summary>
+    public const int MaxLength = 1000;
+
+    /// <summary>
+    /// Minimum length in characters (~80 words at 5 chars/word average)
+    /// Per CLAUDE.md: TL;DR must be 80-160 words max, dense, no fluff
+    /// </summary>
+    public const int MinLength = 400;
 
     private NewsSummary(string value)
     {

@@ -1,5 +1,4 @@
 using DevNews.Domain.NewsItem.ValueObjects;
-using FluentAssertions;
 
 namespace DevNews.UnitTests.Domain.NewsItem.ValueObjects;
 
@@ -8,23 +7,33 @@ public class NewsSummaryTests
     [Fact]
     public void Create_ValidSummary_ReturnsSuccess()
     {
-        var validSummary = "This is a valid summary that meets the minimum length requirement.";
+        // 80+ words (~400 chars) per CLAUDE.md spec
+        var validSummary = "This comprehensive security advisory details a critical remote code execution vulnerability " +
+                           "discovered in the widely-used OpenSSL cryptographic library. The flaw, identified as CVE-2026-1234, " +
+                           "affects versions 3.0 through 3.2.1 and allows unauthenticated attackers to execute arbitrary code " +
+                           "on vulnerable systems. Organizations running affected versions should immediately upgrade to the " +
+                           "patched release 3.2.2. The vulnerability was responsibly disclosed by security researchers and " +
+                           "has been assigned a CVSS score of 9.8 indicating critical severity.";
 
         var result = NewsSummary.Create(validSummary);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Should().Be(validSummary);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(validSummary, result.Data!.Value);
     }
 
     [Fact]
     public void Create_TrimsWhitespace()
     {
-        var summaryWithSpaces = "  This is a summary with spaces  ";
+        var summaryContent = "This comprehensive security advisory details a critical remote code execution vulnerability " +
+                             "discovered in the widely-used OpenSSL cryptographic library. The flaw affects versions 3.0 through 3.2.1 " +
+                             "and allows unauthenticated attackers to execute arbitrary code on vulnerable systems. Organizations " +
+                             "running affected versions should immediately upgrade to the patched release version 3.2.2 now available.";
+        var summaryWithSpaces = $"  {summaryContent}  ";
 
         var result = NewsSummary.Create(summaryWithSpaces);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Should().Be("This is a summary with spaces");
+        Assert.True(result.IsSuccess);
+        Assert.Equal(summaryContent, result.Data!.Value);
     }
 
     [Theory]
@@ -35,8 +44,8 @@ public class NewsSummaryTests
     {
         var result = NewsSummary.Create(summary!);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Summary cannot be empty");
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Summary cannot be empty", result.ErrorMessage);
     }
 
     [Fact]
@@ -46,8 +55,8 @@ public class NewsSummaryTests
 
         var result = NewsSummary.Create(shortSummary);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain($"{NewsSummary.MinLength}");
+        Assert.False(result.IsSuccess);
+        Assert.Contains($"{NewsSummary.MinLength}", result.ErrorMessage);
     }
 
     [Fact]
@@ -57,8 +66,8 @@ public class NewsSummaryTests
 
         var result = NewsSummary.Create(longSummary);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Contain($"{NewsSummary.MaxLength}");
+        Assert.False(result.IsSuccess);
+        Assert.Contains($"{NewsSummary.MaxLength}", result.ErrorMessage);
     }
 
     [Fact]
@@ -68,8 +77,8 @@ public class NewsSummaryTests
 
         var result = NewsSummary.Create(minSummary);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Length.Should().Be(NewsSummary.MinLength);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(NewsSummary.MinLength, result.Data!.Value.Length);
     }
 
     [Fact]
@@ -79,54 +88,75 @@ public class NewsSummaryTests
 
         var result = NewsSummary.Create(maxSummary);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Length.Should().Be(NewsSummary.MaxLength);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(NewsSummary.MaxLength, result.Data!.Value.Length);
     }
 
     [Fact]
     public void ImplicitConversion_ToString_ReturnsValue()
     {
-        var result = NewsSummary.Create("This is a test summary for conversion");
+        var summaryText = "This comprehensive security advisory details a critical remote code execution vulnerability " +
+                          "discovered in the widely-used OpenSSL cryptographic library. The flaw affects versions 3.0 through 3.2.1 " +
+                          "and allows unauthenticated attackers to execute arbitrary code on vulnerable systems. Organizations " +
+                          "running affected versions should immediately upgrade to the patched release version 3.2.2 now available.";
+        var result = NewsSummary.Create(summaryText);
         string value = result.Data!;
 
-        value.Should().Be("This is a test summary for conversion");
+        Assert.Equal(summaryText, value);
     }
 
     [Fact]
     public void ToString_ReturnsValue()
     {
-        var summaryText = "This is a test summary";
+        var summaryText = "This comprehensive security advisory details a critical remote code execution vulnerability " +
+                          "discovered in the widely-used OpenSSL cryptographic library. The flaw affects versions 3.0 through 3.2.1 " +
+                          "and allows unauthenticated attackers to execute arbitrary code on vulnerable systems. Organizations " +
+                          "running affected versions should immediately upgrade to the patched release version 3.2.2 now available.";
         var result = NewsSummary.Create(summaryText);
 
-        result.Data!.ToString().Should().Be(summaryText);
+        Assert.Equal(summaryText, result.Data!.ToString());
     }
 
     [Fact]
     public void Equals_SameSummary_ReturnsTrue()
     {
-        var text = "This is a test summary for equality";
+        var text = "This comprehensive security advisory details a critical remote code execution vulnerability " +
+                   "discovered in the widely-used OpenSSL cryptographic library. The flaw affects versions 3.0 through 3.2.1 " +
+                   "and allows unauthenticated attackers to execute arbitrary code on vulnerable systems. Organizations " +
+                   "running affected versions should immediately upgrade to the patched release version 3.2.2 now available.";
         var summary1 = NewsSummary.Create(text).Data!;
         var summary2 = NewsSummary.Create(text).Data!;
 
-        summary1.Equals(summary2).Should().BeTrue();
+        Assert.True(summary1.Equals(summary2));
     }
 
     [Fact]
     public void Equals_DifferentSummary_ReturnsFalse()
     {
-        var summary1 = NewsSummary.Create("First summary text here").Data!;
-        var summary2 = NewsSummary.Create("Second summary text here").Data!;
+        var summary1 = NewsSummary.Create(
+            "This comprehensive security advisory details a critical remote code execution vulnerability " +
+            "discovered in the widely-used OpenSSL cryptographic library. The flaw affects versions 3.0 through 3.2.1 " +
+            "and allows unauthenticated attackers to execute arbitrary code on vulnerable systems. Organizations " +
+            "running affected versions should immediately upgrade to the patched release version 3.2.2 now available.").Data!;
+        var summary2 = NewsSummary.Create(
+            "A new performance optimization in the Go runtime significantly reduces garbage collection pause times " +
+            "for applications with large heaps. The improvement, landing in Go 1.24, achieves up to 40% reduction in " +
+            "p99 latency for memory-intensive workloads. Developers should update their CI pipelines to test against " +
+            "the latest release candidate before the stable version ships next month as scheduled.").Data!;
 
-        summary1.Equals(summary2).Should().BeFalse();
+        Assert.False(summary1.Equals(summary2));
     }
 
     [Fact]
     public void GetHashCode_SameSummary_ReturnsSameHash()
     {
-        var text = "This is a test summary for hashing";
+        var text = "This comprehensive security advisory details a critical remote code execution vulnerability " +
+                   "discovered in the widely-used OpenSSL cryptographic library. The flaw affects versions 3.0 through 3.2.1 " +
+                   "and allows unauthenticated attackers to execute arbitrary code on vulnerable systems. Organizations " +
+                   "running affected versions should immediately upgrade to the patched release version 3.2.2 now available.";
         var summary1 = NewsSummary.Create(text).Data!;
         var summary2 = NewsSummary.Create(text).Data!;
 
-        summary1.GetHashCode().Should().Be(summary2.GetHashCode());
+        Assert.Equal(summary1.GetHashCode(), summary2.GetHashCode());
     }
 }

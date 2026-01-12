@@ -1,6 +1,5 @@
 using DevNews.Domain.NewsItem.Enums;
 using DevNews.Domain.NewsItem.ValueObjects;
-using FluentAssertions;
 
 namespace DevNews.UnitTests.Domain.NewsItem.ValueObjects;
 
@@ -19,8 +18,8 @@ public class NewsCategoryTests
     {
         var result = NewsCategory.Create(category);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Data!.Value.Should().Be(category);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(category, result.Data!.Value);
     }
 
     [Fact]
@@ -30,8 +29,8 @@ public class NewsCategoryTests
 
         var result = NewsCategory.Create(invalidCategory);
 
-        result.IsSuccess.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Invalid category value");
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Invalid category value", result.ErrorMessage);
     }
 
     [Fact]
@@ -40,7 +39,7 @@ public class NewsCategoryTests
         var result = NewsCategory.Create(CategoryEnum.SecurityAndVulnerabilities);
         CategoryEnum value = result.Data!;
 
-        value.Should().Be(CategoryEnum.SecurityAndVulnerabilities);
+        Assert.Equal(CategoryEnum.SecurityAndVulnerabilities, value);
     }
 
     [Fact]
@@ -48,7 +47,7 @@ public class NewsCategoryTests
     {
         var result = NewsCategory.Create(CategoryEnum.CloudAndInfrastructure);
 
-        result.Data!.ToString().Should().Be("CloudAndInfrastructure");
+        Assert.Equal("CloudAndInfrastructure", result.Data!.ToString());
     }
 
     [Fact]
@@ -57,7 +56,7 @@ public class NewsCategoryTests
         var category1 = NewsCategory.Create(CategoryEnum.AiMlDeveloperTooling).Data!;
         var category2 = NewsCategory.Create(CategoryEnum.AiMlDeveloperTooling).Data!;
 
-        category1.Equals(category2).Should().BeTrue();
+        Assert.True(category1.Equals(category2));
     }
 
     [Fact]
@@ -66,7 +65,7 @@ public class NewsCategoryTests
         var category1 = NewsCategory.Create(CategoryEnum.SecurityAndVulnerabilities).Data!;
         var category2 = NewsCategory.Create(CategoryEnum.CloudAndInfrastructure).Data!;
 
-        category1.Equals(category2).Should().BeFalse();
+        Assert.False(category1.Equals(category2));
     }
 
     [Fact]
@@ -75,6 +74,6 @@ public class NewsCategoryTests
         var category1 = NewsCategory.Create(CategoryEnum.FrameworksAndLibraries).Data!;
         var category2 = NewsCategory.Create(CategoryEnum.FrameworksAndLibraries).Data!;
 
-        category1.GetHashCode().Should().Be(category2.GetHashCode());
+        Assert.Equal(category1.GetHashCode(), category2.GetHashCode());
     }
 }
