@@ -19,7 +19,7 @@ public class AnthropicOptions
     /// <summary>
     /// Model to use (e.g., claude-sonnet-4-20250514, claude-haiku-4-20250514)
     /// </summary>
-    public string Model { get; set; } = "claude-sonnet-4-20250514";
+    public string Model { get; set; } = "claude-haiku-4-5";
 
     /// <summary>
     /// Maximum tokens in the response

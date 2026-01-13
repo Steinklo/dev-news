@@ -1,0 +1,55 @@
+﻿name: PR Build & Test
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths-ignore:
+      - '**/*.md'
+      - '.gitignore'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'DevNews.Functions'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore DevNews.sln
+
+      - name: Build solution
+        run: dotnet build DevNews.sln --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: dotnet test DevNews.UnitTests/DevNews.UnitTests.csproj --configuration Release --no-build --verbosity normal --logger trx --results-directory "TestResults"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: TestResults
+          retention-days: 7
+
+      - name: Publish Functions project
+        run: dotnet publish ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/DevNews.Functions.csproj --configuration Release --output ./publish
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: function-app
+          path: ./publish
+          retention-days: 1
+
