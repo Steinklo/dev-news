@@ -1,4 +1,4 @@
-﻿name: Deploy Azure Functions
+name: Deploy Azure Functions
 
 on:
   push:
@@ -9,6 +9,19 @@ on:
       - '**/*.md'
       - '.gitignore'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - production
+
+permissions:
+  id-token: write
+  contents: read
 
 env:
   DOTNET_VERSION: '10.0.x'
@@ -17,7 +30,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,6 +39,14 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
         run: dotnet restore DevNews.sln
@@ -44,29 +65,40 @@ jobs:
         with:
           name: function-app
           path: ./publish
+          retention-days: 7
 
   deploy-dev:
     runs-on: ubuntu-latest
     needs: build
-    
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development')
+    environment: development
+
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: function-app
           path: ./publish
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_DEV }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_DEV }}
 
       - name: Deploy to Azure Functions (Dev)
         uses: Azure/functions-action@v1
         with:
           app-name: 'func-dewnews-api-dev'
           package: './publish'
-          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE_DEV }}
 
   deploy-prod:
     runs-on: ubuntu-latest
-    needs: deploy-dev
-    
+    needs: build
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment: production
+
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
@@ -74,9 +106,25 @@ jobs:
           name: function-app
           path: ./publish
 
-      - name: Deploy to Azure Functions (Prod)
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_PROD }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_PROD }}
+
+      - name: Deploy to staging slot
         uses: Azure/functions-action@v1
         with:
           app-name: 'func-dewnews-api-prod'
+          slot-name: 'staging'
           package: './publish'
-          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE_PROD }}
+
+      - name: Swap staging to production
+        run: |
+          az functionapp deployment slot swap \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP_PROD }} \
+            --name func-dewnews-api-prod \
+            --slot staging \
+            --target-slot production
+
