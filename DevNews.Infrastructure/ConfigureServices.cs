@@ -10,6 +10,9 @@ namespace DevNews.Infrastructure;
 
 public static class ConfigureServices
 {
+    private const string DatabaseId = "dev-news-db";
+    private const string ContainerId = "news-items";
+
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -24,9 +27,7 @@ public static class ConfigureServices
         services.AddScoped<INewsItemRepository>(sp =>
         {
             var cosmosClient = sp.GetRequiredService<CosmosClient>();
-            var databaseId = configuration["CosmosDbDatabaseId"] ?? "DevNews";
-            var containerId = configuration["CosmosDbContainerId"] ?? "NewsItems";
-            return new NewsItemCosmosRepository(cosmosClient, databaseId, containerId);
+            return new NewsItemCosmosRepository(cosmosClient, DatabaseId, ContainerId);
         });
 
         // Crawl service

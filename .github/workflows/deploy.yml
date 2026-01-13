@@ -78,7 +78,7 @@ jobs:
       - name: Deploy to Azure Functions (Dev)
         uses: Azure/functions-action@v1
         with:
-          app-name: 'func-dewnews-api-dev'
+          app-name: 'func-devnews-api-dev'
           package: './publish'
 
   deploy-prod:
@@ -103,6 +103,6 @@ jobs:
       - name: Deploy to Azure Functions (Prod)
         uses: Azure/functions-action@v1
         with:
-          app-name: 'func-dewnews-api-prod'
+          app-name: 'func-devnews-api-prod'
           package: './publish'
 
