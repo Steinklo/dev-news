@@ -1,6 +1,6 @@
 using DevNews.Application.Common.Services;
 using DevNews.Application.NewsItem.Commands;
-using DevNews.Domain.Common.Models;
+using DevNews.Application.Common.Models;
 using Mediator;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;

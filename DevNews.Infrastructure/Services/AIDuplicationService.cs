@@ -3,7 +3,7 @@ using System.Text.Json;
 using DevNews.Application.Common.Repositories;
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
-using DevNews.Domain.Common.Models;
+using DevNews.Application.Common.Models;
 
 namespace DevNews.Infrastructure.Services;
 
@@ -12,23 +12,14 @@ namespace DevNews.Infrastructure.Services;
 /// 1. Exact URL match (fast path)
 /// 2. AI semantic check (catches rephrased duplicates)
 /// </summary>
-public class AiDuplicationService : IDuplicationService
+public class AiDuplicationService(IAiService aiService, INewsItemRepository repository) : IDuplicationService
 {
-    private readonly IAiService _aiService;
-    private readonly INewsItemRepository _repository;
-
-    public AiDuplicationService(IAiService aiService, INewsItemRepository repository)
-    {
-        _aiService = aiService;
-        _repository = repository;
-    }
-
     public async Task<ResultResponse<bool>> IsDuplicateAsync(CleanedArticle article, CancellationToken ct = default)
     {
         try
         {
             // TIER 1: Exact URL match (fastest)
-            var existingByUrl = await _repository.GetByUrlAsync(article.Url.ToString(), ct);
+            var existingByUrl = await repository.GetByUrlAsync(article.Url.ToString(), ct);
             if (existingByUrl.IsSuccess && existingByUrl.Data != null)
             {
                 return ResultResponse<bool>.Success(true);
@@ -36,13 +27,14 @@ public class AiDuplicationService : IDuplicationService
 
             // TIER 2: AI semantic check
             var articleDate = article.PublishedAt ?? DateTimeOffset.UtcNow;
-            var startOfMonth = new DateTimeOffset(articleDate.Year, articleDate.Month, 1, 0, 0, 0, articleDate.Offset);
+            var startOfMonth = new DateTimeOffset(articleDate.Year, articleDate.Month, 1, 0, 0, 0, TimeSpan.Zero);
             var endOfMonth = startOfMonth.AddMonths(1);
 
-            var sameMonthArticles = await _repository.GetByCategoryAndDateRangeAsync(
+            var sameMonthArticles = await repository.GetByCategoryAndMonthAsync(
                 article.Category,
                 startOfMonth,
                 endOfMonth,
+                limit: 100,
                 ct);
 
             if (!sameMonthArticles.IsSuccess || !sameMonthArticles.Data!.Any())
@@ -56,7 +48,7 @@ public class AiDuplicationService : IDuplicationService
                 return ResultResponse<bool>.Failure(promptResult.ErrorMessage);
             }
 
-            var aiResponse = await _aiService.GenerateAsync(promptResult.Data!, ct);
+            var aiResponse = await aiService.GenerateAsync(promptResult.Data!, ct);
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
             {
                 // If AI fails, fail open (assume not duplicate)

@@ -34,8 +34,6 @@ public static class ConfigureServices
         services.AddHttpClient<ICrawlService, AiCrawlService>();
 
         // Anthropic AI service
-        services.Configure<AnthropicOptions>(
-            configuration.GetSection(AnthropicOptions.SectionName));
         services.AddSingleton<IAiService, AnthropicAiService>();
 
         // AI-powered services

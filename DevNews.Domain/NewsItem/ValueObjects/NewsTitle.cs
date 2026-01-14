@@ -48,4 +48,9 @@ public class NewsTitle : ValueObject
     public override string ToString() => Value;
 
     public static implicit operator string(NewsTitle title) => title.Value;
+
+    /// <summary>
+    /// Reconstitutes from persistence without validation
+    /// </summary>
+    internal static NewsTitle Reconstitute(string value) => new(value);
 }

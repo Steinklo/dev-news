@@ -1,6 +1,6 @@
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
-using DevNews.Domain.Common.Models;
+using DevNews.Application.Common.Models;
 using Mediator;
 using Microsoft.Extensions.Logging;
 

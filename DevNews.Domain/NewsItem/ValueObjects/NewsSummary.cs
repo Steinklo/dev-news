@@ -50,4 +50,6 @@ public class NewsSummary : ValueObject
     public override string ToString() => Value;
 
     public static implicit operator string(NewsSummary summary) => summary.Value;
+
+    internal static NewsSummary Reconstitute(string value) => new(value);
 }

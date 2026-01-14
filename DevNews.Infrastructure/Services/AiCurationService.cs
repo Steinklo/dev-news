@@ -2,21 +2,126 @@ using System.Text;
 using System.Text.Json;
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
-using DevNews.Domain.Common.Models;
+using DevNews.Application.Common.Models;
 using DevNews.Domain.NewsItem.Enums;
 
 namespace DevNews.Infrastructure.Services;
 
-public class AiCurationService : ICurationService
+public class AiCurationService(IAiService aiService) : ICurationService
 {
-    private readonly IAiService _aiService;
-
-    public AiCurationService(IAiService aiService)
+    /// <summary>
+    /// Known source mappings from domain to display name.
+    /// </summary>
+    private static readonly Dictionary<string, string> SourceMappings = new(StringComparer.OrdinalIgnoreCase)
     {
-        _aiService = aiService;
+        // Major tech news
+        ["news.ycombinator.com"] = "Hacker News",
+        ["ycombinator.com"] = "Hacker News",
+        ["techcrunch.com"] = "TechCrunch",
+        ["arstechnica.com"] = "Ars Technica",
+        ["theverge.com"] = "The Verge",
+        ["wired.com"] = "Wired",
+        ["zdnet.com"] = "ZDNet",
+        ["infoworld.com"] = "InfoWorld",
+
+        // Dev platforms
+        ["github.com"] = "GitHub",
+        ["github.blog"] = "GitHub Blog",
+        ["gitlab.com"] = "GitLab",
+        ["dev.to"] = "DEV Community",
+        ["medium.com"] = "Medium",
+        ["hashnode.dev"] = "Hashnode",
+        ["stackoverflow.com"] = "Stack Overflow",
+        ["stackoverflow.blog"] = "Stack Overflow Blog",
+
+        // Cloud providers
+        ["aws.amazon.com"] = "AWS",
+        ["cloud.google.com"] = "Google Cloud",
+        ["azure.microsoft.com"] = "Microsoft Azure",
+        ["blog.cloudflare.com"] = "Cloudflare",
+        ["cloudflare.com"] = "Cloudflare",
+        ["vercel.com"] = "Vercel",
+        ["netlify.com"] = "Netlify",
+
+        // Company blogs
+        ["engineering.fb.com"] = "Meta Engineering",
+        ["netflixtechblog.com"] = "Netflix Tech Blog",
+        ["uber.com/blog"] = "Uber Engineering",
+        ["blog.google"] = "Google Blog",
+        ["developers.google.com"] = "Google Developers",
+        ["developer.chrome.com"] = "Chrome Developers",
+        ["webkit.org"] = "WebKit",
+        ["mozilla.org"] = "Mozilla",
+        ["blog.mozilla.org"] = "Mozilla Blog",
+        ["hacks.mozilla.org"] = "Mozilla Hacks",
+        ["devblogs.microsoft.com"] = "Microsoft DevBlogs",
+        ["openai.com"] = "OpenAI",
+        ["anthropic.com"] = "Anthropic",
+
+        // Programming language official
+        ["go.dev"] = "Go",
+        ["blog.golang.org"] = "Go Blog",
+        ["rust-lang.org"] = "Rust",
+        ["blog.rust-lang.org"] = "Rust Blog",
+        ["python.org"] = "Python",
+        ["nodejs.org"] = "Node.js",
+        ["kotlinlang.org"] = "Kotlin",
+        ["swift.org"] = "Swift",
+        ["dotnet.microsoft.com"] = ".NET",
+        ["devblogs.microsoft.com/dotnet"] = ".NET Blog",
+        ["typescriptlang.org"] = "TypeScript",
+
+        // Security
+        ["cve.mitre.org"] = "CVE",
+        ["nvd.nist.gov"] = "NVD",
+        ["security.googleblog.com"] = "Google Security Blog",
+        ["msrc.microsoft.com"] = "Microsoft Security",
+        ["krebsonsecurity.com"] = "Krebs on Security",
+        ["bleepingcomputer.com"] = "BleepingComputer",
+        ["theregister.com"] = "The Register",
+
+        // Reddit
+        ["reddit.com"] = "Reddit",
+        ["old.reddit.com"] = "Reddit",
+
+        // Other
+        ["lobste.rs"] = "Lobsters",
+        ["slashdot.org"] = "Slashdot",
+        ["dzone.com"] = "DZone",
+        ["infoq.com"] = "InfoQ",
+        ["martinfowler.com"] = "Martin Fowler",
+        ["jwz.org"] = "JWZ",
+    };
+
+    private static string ResolveSource(Uri url)
+    {
+        var host = url.Host.ToLowerInvariant();
+
+        // Try exact match first
+        if (SourceMappings.TryGetValue(host, out var source))
+            return source;
+
+        // Try without www.
+        var hostWithoutWww = host.StartsWith("www.") ? host[4..] : host;
+        if (SourceMappings.TryGetValue(hostWithoutWww, out source))
+            return source;
+
+        // Try with subdomain removed (e.g., blog.example.com -> example.com)
+        var parts = hostWithoutWww.Split('.');
+        if (parts.Length > 2)
+        {
+            var rootDomain = string.Join(".", parts[^2..]);
+            if (SourceMappings.TryGetValue(rootDomain, out source))
+                return source;
+        }
+
+        // Fallback: capitalize the domain name
+        var fallback = hostWithoutWww.Split('.')[0];
+        return char.ToUpper(fallback[0]) + fallback[1..];
     }
 
-    public async Task<ResultResponse<CleanedArticle>> CurateAsync(CrawledArticle article, CancellationToken ct = default)
+    public async Task<ResultResponse<CleanedArticle>> CurateAsync(CrawledArticle article,
+        CancellationToken ct = default)
     {
         try
         {
@@ -28,7 +133,7 @@ public class AiCurationService : ICurationService
             }
 
             // Call AI service to extract article data
-            var aiResponse = await _aiService.GenerateAsync(promptResult.Data!, ct);
+            var aiResponse = await aiService.GenerateAsync(promptResult.Data!, ct);
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
             {
                 return ResultResponse<CleanedArticle>.Failure(aiResponse.ErrorMessage);
@@ -59,25 +164,31 @@ public class AiCurationService : ICurationService
             var sb = new StringBuilder();
             sb.AppendLine("You are an expert developer news curator.");
             sb.AppendLine();
-            sb.AppendLine("Extract and curate the following article from HTML:");
+            sb.AppendLine("Extract and curate the following article:");
             sb.AppendLine($"Article URL: {articleUrl}");
             sb.AppendLine();
             sb.AppendLine("Extract the following fields:");
             sb.AppendLine("- title: The article title (clean, factual)");
-            sb.AppendLine("- summary: A TL;DR summary of the article content (80-160 words, dense, no fluff, developer language)");
+            sb.AppendLine(
+                "- summary: A TL;DR summary of the article content (80-160 words, dense, no fluff, developer language)");
             sb.AppendLine("- category: The best-fit category from the allowed list");
             sb.AppendLine("- relevanceScore: 0-100 indicating how relevant this is for professional developers");
             sb.AppendLine("- severity: ONLY for SecurityAndVulnerabilities category - one of: " + severityList);
-            sb.AppendLine("- tags: Array of max 5 tags for filtering (e.g. cve, kubernetes, go1.24, breaking-change, supply-chain)");
+            sb.AppendLine(
+                "- tags: Array of max 5 tags for filtering (e.g. cve, kubernetes, go1.24, breaking-change, supply-chain)");
             sb.AppendLine("- publishedAt: The publication date in ISO 8601 format (if available, otherwise null)");
             sb.AppendLine("- author: The author name (if available, otherwise null)");
             sb.AppendLine();
             sb.AppendLine("Strict rules:");
-            sb.AppendLine("- Only content clearly relevant for software developers (reject marketing, HR, business-only, personal blogs without technical depth)");
-            sb.AppendLine($"- Title must be {CurationRules.MinTitleLength}–{CurationRules.MaxTitleLength} characters and factual");
-            sb.AppendLine($"- Summary (TL;DR) must be {CurationRules.MinSummaryLength}–{CurationRules.MaxSummaryLength} characters, concise, spoiler-free");
+            sb.AppendLine(
+                "- Only content clearly relevant for software developers (reject marketing, HR, business-only, personal blogs without technical depth)");
+            sb.AppendLine(
+                $"- Title must be {CurationRules.MinTitleLength}–{CurationRules.MaxTitleLength} characters and factual");
+            sb.AppendLine(
+                $"- Summary (TL;DR) must be {CurationRules.MinSummaryLength}–{CurationRules.MaxSummaryLength} characters, concise, spoiler-free");
             sb.AppendLine($"- Category must be exactly one of: {categoriesList}");
-            sb.AppendLine("- relevanceScore: 90+ for critical/breaking news, 70-89 for important updates, 50-69 for notable, below 50 for marginal");
+            sb.AppendLine(
+                "- relevanceScore: 90+ for critical/breaking news, 70-89 for important updates, 50-69 for notable, below 50 for marginal");
             sb.AppendLine("- severity is REQUIRED for SecurityAndVulnerabilities, must be null for other categories");
             sb.AppendLine("- tags: max 5, lowercase, for search/filtering (e.g. cve, kubernetes, breaking-change)");
             sb.AppendLine("- Reject ads, clickbait, low-depth posts, paywalled content summaries");
@@ -106,8 +217,18 @@ public class AiCurationService : ICurationService
             sb.AppendLine("  \"errorMessage\": \"brief explanation\"");
             sb.AppendLine("}");
             sb.AppendLine();
-            sb.AppendLine("Article HTML:");
-            sb.Append(articleHtml);
+            sb.AppendLine("Article Content:");
+            // Truncate content to ~15k chars (~4k tokens) to stay well under rate limits
+            const int maxContentLength = 15000;
+            if (articleHtml.Length > maxContentLength)
+            {
+                sb.Append(articleHtml.AsSpan(0, maxContentLength));
+                sb.Append("\n[TRUNCATED]");
+            }
+            else
+            {
+                sb.Append(articleHtml);
+            }
 
             return ResultResponse<string>.Success(sb.ToString());
         }
@@ -154,6 +275,7 @@ public class AiCurationService : ICurationService
             {
                 return ResultResponse<CleanedArticle>.Failure("Missing 'title' field in AI response");
             }
+
             var title = titleElement.GetString();
             if (string.IsNullOrWhiteSpace(title))
             {
@@ -165,6 +287,7 @@ public class AiCurationService : ICurationService
             {
                 return ResultResponse<CleanedArticle>.Failure("Missing 'summary' field in AI response");
             }
+
             var summary = summaryElement.GetString();
             if (string.IsNullOrWhiteSpace(summary))
             {
@@ -176,8 +299,10 @@ public class AiCurationService : ICurationService
             {
                 return ResultResponse<CleanedArticle>.Failure("Missing 'category' field in AI response");
             }
+
             var categoryStr = categoryElement.GetString();
-            if (string.IsNullOrWhiteSpace(categoryStr) || !Enum.TryParse<CategoryEnum>(categoryStr, ignoreCase: true, out var category))
+            if (string.IsNullOrWhiteSpace(categoryStr) ||
+                !Enum.TryParse<CategoryEnum>(categoryStr, ignoreCase: true, out var category))
             {
                 return ResultResponse<CleanedArticle>.Failure($"Invalid category '{categoryStr}' in AI response");
             }
@@ -187,6 +312,7 @@ public class AiCurationService : ICurationService
             {
                 return ResultResponse<CleanedArticle>.Failure("Missing 'relevanceScore' field in AI response");
             }
+
             var relevanceScore = relevanceElement.GetInt32();
             if (relevanceScore < 0 || relevanceScore > 100)
             {
@@ -199,7 +325,8 @@ public class AiCurationService : ICurationService
                 && severityElement.ValueKind != JsonValueKind.Null)
             {
                 var severityStr = severityElement.GetString();
-                if (!string.IsNullOrWhiteSpace(severityStr) && Enum.TryParse<SeverityEnum>(severityStr, ignoreCase: true, out var parsedSeverity))
+                if (!string.IsNullOrWhiteSpace(severityStr) &&
+                    Enum.TryParse<SeverityEnum>(severityStr, ignoreCase: true, out var parsedSeverity))
                 {
                     severity = parsedSeverity;
                 }
@@ -208,8 +335,10 @@ public class AiCurationService : ICurationService
             // Validate severity rules
             if (category == CategoryEnum.SecurityAndVulnerabilities && !severity.HasValue)
             {
-                return ResultResponse<CleanedArticle>.Failure("severity is required for SecurityAndVulnerabilities category");
+                return ResultResponse<CleanedArticle>.Failure(
+                    "severity is required for SecurityAndVulnerabilities category");
             }
+
             if (category != CategoryEnum.SecurityAndVulnerabilities && severity.HasValue)
             {
                 severity = null; // Ignore severity for non-security categories
@@ -251,6 +380,9 @@ public class AiCurationService : ICurationService
                 author = authorElement.GetString();
             }
 
+            // Resolve source from URL using known mappings
+            var source = ResolveSource(url);
+
             var cleanedArticle = new CleanedArticle(
                 Title: title,
                 Summary: summary,
@@ -258,9 +390,10 @@ public class AiCurationService : ICurationService
                 Url: url,
                 RelevanceScore: relevanceScore,
                 PublishedAt: publishedAt,
+                Source: source,
+                Author: author,
                 Severity: severity,
-                Tags: tags,
-                Author: author
+                Tags: tags
             );
 
             return ResultResponse<CleanedArticle>.Success(cleanedArticle);

@@ -31,4 +31,6 @@ public class NewsCategory : ValueObject
     public override string ToString() => Value.ToString();
 
     public static implicit operator CategoryEnum(NewsCategory category) => category.Value;
+
+    internal static NewsCategory Reconstitute(CategoryEnum value) => new(value);
 }

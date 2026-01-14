@@ -1,5 +1,5 @@
 using DevNews.Application.Common.Services;
-using DevNews.Domain.Common.Models;
+using DevNews.Application.Common.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -55,14 +55,19 @@ public class Orchestrator
             return new NightlyCrawlResult(0, 0, 0, 0, 0, context.CurrentUtcDateTime - startTime);
         }
 
-        // Step 2: Fan-out - Curate all articles in parallel
-        var curationTasks = crawledArticles.Select(article =>
-            context.CallActivityAsync<CleanedArticle?>(
+        // Step 2: Curate articles sequentially to respect rate limits (50 req/min)
+        var curationResults = new List<CleanedArticle?>();
+        foreach (var article in crawledArticles)
+        {
+            var result = await context.CallActivityAsync<CleanedArticle?>(
                 nameof(Activities.CurateArticleActivity),
                 article,
-                CreateRetryOptions()));
+                CreateRetryOptions());
+            curationResults.Add(result);
 
-        var curationResults = await Task.WhenAll(curationTasks);
+            // Rate limit: 50 requests/min = 1.2s between calls, use 2s for safety
+            await context.CreateTimer(context.CurrentUtcDateTime.AddSeconds(2), CancellationToken.None);
+        }
 
         // Filter out failed curations
         var cleanedArticles = curationResults
@@ -74,17 +79,19 @@ public class Orchestrator
         failed += discovered - curated;
         logger.LogInformation("Curated {Count} articles, {Failed} failed", curated, discovered - curated);
 
-        // Step 3: Fan-out - Check duplications in parallel
-        var duplicationTasks = cleanedArticles.Select(async article =>
+        // Step 3: Check duplications sequentially to respect rate limits (50 req/min)
+        var duplicationResults = new List<(CleanedArticle Article, bool IsDuplicate)>();
+        foreach (var article in cleanedArticles)
         {
             var isDuplicate = await context.CallActivityAsync<bool>(
                 nameof(Activities.CheckDuplicationActivity),
                 article,
                 CreateRetryOptions());
-            return (Article: article, IsDuplicate: isDuplicate);
-        });
+            duplicationResults.Add((article, isDuplicate));
 
-        var duplicationResults = await Task.WhenAll(duplicationTasks);
+            // Rate limit: 50 requests/min = 1.2s between calls, use 2s for safety
+            await context.CreateTimer(context.CurrentUtcDateTime.AddSeconds(2), CancellationToken.None);
+        }
 
         // Filter out duplicates
         var uniqueArticles = duplicationResults

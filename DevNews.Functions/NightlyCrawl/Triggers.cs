@@ -15,28 +15,11 @@ public class Triggers
     }
 
     /// <summary>
-    /// Timer trigger - runs nightly at 2 AM UTC
-    /// </summary>
-    [Function(nameof(NightlyCrawlTimer))]
-    public async Task NightlyCrawlTimer(
-        [TimerTrigger("0 0 2 * * *")] TimerInfo timer,
-        [DurableClient] DurableTaskClient client,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Nightly crawl timer triggered at {Time}", DateTime.UtcNow);
-
-        var instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
-            nameof(Orchestrator.NightlyCrawlOrchestrator));
-
-        _logger.LogInformation("Started nightly crawl orchestration with instance ID: {InstanceId}", instanceId);
-    }
-
-    /// <summary>
-    /// HTTP trigger - manually start the nightly crawl (for testing/ad-hoc runs)
+    /// HTTP trigger - manually start the crawl
     /// </summary>
     [Function(nameof(StartNightlyCrawl))]
     public async Task<HttpResponseData> StartNightlyCrawl(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "crawl/start")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/crawl/start")] HttpRequestData req,
         [DurableClient] DurableTaskClient client,
         CancellationToken cancellationToken)
     {
@@ -50,8 +33,8 @@ public class Triggers
         var response = req.CreateResponse(System.Net.HttpStatusCode.Accepted);
         await response.WriteAsJsonAsync(new
         {
-            instanceId,
-            statusQueryUrl = $"/crawl/status/{instanceId}",
+            instance_id = instanceId,
+            status_url = $"/api/v1/crawl/status/{instanceId}",
             message = "Nightly crawl orchestration started"
         }, cancellationToken);
 
@@ -63,27 +46,27 @@ public class Triggers
     /// </summary>
     [Function(nameof(GetCrawlStatus))]
     public async Task<HttpResponseData> GetCrawlStatus(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "crawl/status/{instanceId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/crawl/status/{instanceId}")] HttpRequestData req,
         [DurableClient] DurableTaskClient client,
         string instanceId,
         CancellationToken cancellationToken)
     {
         var metadata = await client.GetInstanceAsync(instanceId);
 
-        if (metadata == null)
+            if (metadata == null)
         {
             var notFound = req.CreateResponse(System.Net.HttpStatusCode.NotFound);
-            await notFound.WriteAsJsonAsync(new { error = "Instance not found" }, cancellationToken);
+                await notFound.WriteAsJsonAsync(new { error = "Instance not found" }, cancellationToken);
             return notFound;
         }
 
         var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
         await response.WriteAsJsonAsync(new
         {
-            instanceId = metadata.InstanceId,
+            instance_id = metadata.InstanceId,
             status = metadata.RuntimeStatus.ToString(),
-            createdAt = metadata.CreatedAt,
-            lastUpdatedAt = metadata.LastUpdatedAt,
+            created_at = metadata.CreatedAt,
+            last_updated_at = metadata.LastUpdatedAt,
             output = metadata.RuntimeStatus == OrchestrationRuntimeStatus.Completed
                 ? metadata.ReadOutputAs<NightlyCrawlResult>()
                 : null

@@ -2,31 +2,74 @@ using System.ServiceModel.Syndication;
 using System.Xml;
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using SmartReader;
 
 namespace DevNews.Infrastructure.Services;
+
+public static class CrawlServiceOptions
+{
+    public static int MaxArticlesPerFeed => 1;
+    public static int MaxArticleAgeHours => 48;
+
+    public static IReadOnlyList<string> RssFeedUrls =>
+    [
+        // Security & Vulnerabilities
+        "https://github.com/security-advisories.atom",
+        // "https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss-analyzed.xml",
+        // "https://www.cisa.gov/uscert/ncas/alerts.xml",
+        // "https://snyk.io/vuln/feed",
+        // "https://krebsonsecurity.com/feed/",
+        // "https://feeds.feedburner.com/TheHackersNews",
+        // "https://www.bleepingcomputer.com/feed/",
+        // "https://www.troyhunt.com/rss/",
+
+        // Programming Languages & Runtimes
+        "https://nodejs.org/en/feed/blog.xml",
+        // "https://devblogs.microsoft.com/typescript/feed/",
+        // "https://blog.python.org/feeds/posts/default",
+        // "https://go.dev/blog/feed.atom",
+        // "https://blog.rust-lang.org/feed.xml",
+        // "https://devblogs.microsoft.com/dotnet/feed/",
+
+        // Cloud & Infrastructure
+        "https://azure.microsoft.com/en-us/updates/feed/",
+        // "https://aws.amazon.com/blogs/aws/feed/",
+        // "https://cloud.google.com/blog/rss",
+        // "https://kubernetes.io/feed.xml",
+
+        // DevOps, CI/CD & Tools
+        "https://github.blog/feed/",
+        // "https://www.docker.com/blog/feed/",
+        // "https://www.datadoghq.com/blog/feed/",
+        // "https://about.gitlab.com/atom.xml",
+        // "https://code.visualstudio.com/feed.xml",
+
+        // Frameworks & Libraries
+        "https://react.dev/rss.xml",
+        // "https://nextjs.org/feed.xml",
+        // "https://spring.io/blog.atom",
+        // "https://www.djangoproject.com/rss/weblog/",
+
+        // Developer News Aggregators
+        "https://hnrss.org/frontpage",
+        // "https://lobste.rs/rss",
+        // "https://www.infoq.com/feed"
+    ];
+}
 
 public class AiCrawlService : ICrawlService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AiCrawlService> _logger;
-    private readonly List<string> _rssFeedUrls;
-    private readonly int _maxArticlesPerFeed;
-    private readonly int _maxArticleAgeHours;
 
     public AiCrawlService(
         HttpClient httpClient,
-        ILogger<AiCrawlService> logger,
-        IConfiguration configuration)
+        ILogger<AiCrawlService> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
 
-        // Read RSS feeds from configuration
-        _rssFeedUrls = configuration.GetSection("CrawlService:RssFeedUrls").Get<List<string>>() ?? [];
-        _maxArticlesPerFeed = configuration.GetValue("CrawlService:MaxArticlesPerFeed", 10);
-        _maxArticleAgeHours = configuration.GetValue("CrawlService:MaxArticleAgeHours", 48);
 
         _httpClient.DefaultRequestHeaders.Clear();
         _httpClient.DefaultRequestHeaders.Add("User-Agent",
@@ -37,14 +80,14 @@ public class AiCrawlService : ICrawlService
     public async Task<ResultResponse<IEnumerable<CrawledArticle>>> DiscoverArticlesAsync(CancellationToken ct = default)
     {
         var allArticles = new List<CrawledArticle>();
-        var cutoffTime = DateTimeOffset.UtcNow.AddHours(-_maxArticleAgeHours);
+        var cutoffTime = DateTimeOffset.UtcNow.AddHours(-CrawlServiceOptions.MaxArticleAgeHours);
 
         _logger.LogInformation(
             "Starting article discovery from {FeedCount} RSS feeds, max age: {MaxAge}h",
-            _rssFeedUrls.Count,
-            _maxArticleAgeHours);
+            CrawlServiceOptions.RssFeedUrls.Count,
+            CrawlServiceOptions.MaxArticleAgeHours);
 
-        foreach (var feedUrl in _rssFeedUrls)
+        foreach (var feedUrl in CrawlServiceOptions.RssFeedUrls)
         {
             ct.ThrowIfCancellationRequested();
 
@@ -101,7 +144,7 @@ public class AiCrawlService : ICrawlService
         // Process feed items
         var recentItems = feed.Items
             .Where(item => item.PublishDate >= cutoffTime || item.LastUpdatedTime >= cutoffTime)
-            .Take(_maxArticlesPerFeed)
+            .Take(CrawlServiceOptions.MaxArticlesPerFeed)
             .ToList();
 
         foreach (var item in recentItems)
@@ -124,7 +167,22 @@ public class AiCrawlService : ICrawlService
                     continue;
                 }
 
-                articles.Add(new CrawledArticle(html, articleUrl));
+                // Extract clean article content using SmartReader
+                var reader = new Reader(articleUrl.ToString(), html);
+                var article = reader.GetArticle();
+
+                if (article == null || !article.IsReadable || string.IsNullOrWhiteSpace(article.TextContent))
+                {
+                    _logger.LogDebug("SmartReader couldn't extract content from {Url}", articleUrl);
+                    continue;
+                }
+
+                _logger.LogDebug(
+                    "Extracted article: {Length} chars (was {OriginalLength} chars HTML)",
+                    article.TextContent.Length,
+                    html.Length);
+
+                articles.Add(new CrawledArticle(article.TextContent, articleUrl));
             }
             catch (Exception ex)
             {

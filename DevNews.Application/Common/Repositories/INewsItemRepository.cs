@@ -7,21 +7,15 @@ public interface INewsItemRepository
 {
     Task<ResultResponse<Domain.NewsItem.NewsItem?>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<ResultResponse<Domain.NewsItem.NewsItem?>> GetByUrlAsync(string url, CancellationToken cancellationToken = default);
-    Task<ResultResponse<IEnumerable<Domain.NewsItem.NewsItem>>> GetRecentAsync(int limit = 100, CancellationToken cancellationToken = default);
-    Task<ResultResponse<IEnumerable<Domain.NewsItem.NewsItem>>> GetByCategoryAndDateRangeAsync(
+
+    /// <summary>
+    /// Get news items by category and month. Uses partition key for efficient queries.
+    /// </summary>
+    Task<ResultResponse<IEnumerable<Domain.NewsItem.NewsItem>>> GetByCategoryAndMonthAsync(
         CategoryEnum category,
         DateTimeOffset startDate,
         DateTimeOffset endDate,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Get articles within a date range for fingerprint comparison.
-    /// Used for multi-tier deduplication.
-    /// </summary>
-    Task<ResultResponse<IEnumerable<Domain.NewsItem.NewsItem>>> GetByDateRangeAsync(
-        DateTimeOffset startDate,
-        DateTimeOffset endDate,
-        int limit = 500,
+        int limit = 50,
         CancellationToken cancellationToken = default);
 
     Task<ResultResponse<Domain.NewsItem.NewsItem>> AddAsync(Domain.NewsItem.NewsItem newsItem, CancellationToken cancellationToken = default);

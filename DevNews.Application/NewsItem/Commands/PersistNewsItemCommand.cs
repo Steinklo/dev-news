@@ -1,6 +1,6 @@
 using DevNews.Application.Common.Repositories;
 using DevNews.Domain.Common;
-using DevNews.Domain.Common.Models;
+using DevNews.Application.Common.Models;
 using Mediator;
 using Microsoft.Extensions.Logging;
 
@@ -36,6 +36,8 @@ public class PersistNewsItemHandler : IRequestHandler<PersistNewsItemCommand, Re
             url: article.Url.ToString(),
             category: article.Category,
             relevanceScore: article.RelevanceScore,
+            source: article.Source,
+            author: article.Author,
             publishedAt: article.PublishedAt,
             severity: article.Severity,
             tags: article.Tags);

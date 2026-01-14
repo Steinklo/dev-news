@@ -1,5 +1,5 @@
 using DevNews.Domain.Common;
-using DevNews.Domain.Common.Models;
+using DevNews.Application.Common.Models;
 
 namespace DevNews.Application.Common.Services;
 

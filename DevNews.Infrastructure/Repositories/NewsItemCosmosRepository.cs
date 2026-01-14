@@ -3,6 +3,7 @@ using DevNews.Application.Common.Repositories;
 using DevNews.Domain.Common;
 using DevNews.Domain.NewsItem;
 using DevNews.Domain.NewsItem.Enums;
+using DevNews.Infrastructure.Persistence;
 using Microsoft.Azure.Cosmos;
 
 namespace DevNews.Infrastructure.Repositories;
@@ -16,13 +17,19 @@ public sealed class NewsItemCosmosRepository(CosmosClient client, string databas
     {
         try
         {
-            var response = await _container.ReadItemAsync<NewsItem>(id.ToString(), new PartitionKey(id.ToString()),
-                cancellationToken: cancellationToken);
-            return ResultResponse<NewsItem?>.Success(response.Resource);
-        }
-        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-        {
-            return ResultResponse<NewsItem?>.Failure($"NewsItem {id} not found");
+            var query = new QueryDefinition("SELECT * FROM c WHERE c.id = @id")
+                .WithParameter("@id", id.ToString());
+
+            var iterator = _container.GetItemQueryIterator<NewsItemDocument>(query);
+
+            if (iterator.HasMoreResults)
+            {
+                var response = await iterator.ReadNextAsync(cancellationToken);
+                var doc = response.FirstOrDefault();
+                return ResultResponse<NewsItem?>.Success(doc?.ToDomain());
+            }
+
+            return ResultResponse<NewsItem?>.Success(null);
         }
         catch (Exception ex)
         {
@@ -34,16 +41,16 @@ public sealed class NewsItemCosmosRepository(CosmosClient client, string databas
     {
         try
         {
-            var query = new QueryDefinition("SELECT * FROM c WHERE c.Url.Value = @url")
+            var query = new QueryDefinition("SELECT * FROM c WHERE c.Url = @url")
                 .WithParameter("@url", url);
 
-            var iterator = _container.GetItemQueryIterator<NewsItem>(query);
-            
+            var iterator = _container.GetItemQueryIterator<NewsItemDocument>(query);
+
             if (iterator.HasMoreResults)
             {
                 var response = await iterator.ReadNextAsync(cancellationToken);
-                var newsItem = response.FirstOrDefault();
-                return ResultResponse<NewsItem?>.Success(newsItem);
+                var doc = response.FirstOrDefault();
+                return ResultResponse<NewsItem?>.Success(doc?.ToDomain());
             }
 
             return ResultResponse<NewsItem?>.Success(null);
@@ -54,83 +61,34 @@ public sealed class NewsItemCosmosRepository(CosmosClient client, string databas
         }
     }
 
-    public async Task<ResultResponse<IEnumerable<NewsItem>>> GetRecentAsync(int limit = 100, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var query = new QueryDefinition("SELECT * FROM c ORDER BY c.PublishedAt DESC OFFSET 0 LIMIT @limit")
-                .WithParameter("@limit", limit);
-
-            var iterator = _container.GetItemQueryIterator<NewsItem>(query);
-            var results = new List<NewsItem>();
-
-            while (iterator.HasMoreResults)
-            {
-                var response = await iterator.ReadNextAsync(cancellationToken);
-                results.AddRange(response);
-            }
-
-            return ResultResponse<IEnumerable<NewsItem>>.Success(results);
-        }
-        catch (Exception ex)
-        {
-            return ResultResponse<IEnumerable<NewsItem>>.Failure($"Failed to fetch recent NewsItems: {ex.Message}");
-        }
-    }
-
-    public async Task<ResultResponse<IEnumerable<NewsItem>>> GetByCategoryAndDateRangeAsync(
+    public async Task<ResultResponse<IEnumerable<NewsItem>>> GetByCategoryAndMonthAsync(
         CategoryEnum category,
         DateTimeOffset startDate,
         DateTimeOffset endDate,
+        int limit = 50,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            // Use partition key for efficient single-partition query
+            var partitionKey = $"{category}_{startDate:yyyy-MM}";
+
             var query = new QueryDefinition(
-                "SELECT * FROM c WHERE c.Category.Value = @category AND c.PublishedAt >= @startDate AND c.PublishedAt < @endDate")
-                .WithParameter("@category", (int)category)
-                .WithParameter("@startDate", startDate.ToString("o"))
-                .WithParameter("@endDate", endDate.ToString("o"));
-
-            var iterator = _container.GetItemQueryIterator<NewsItem>(query);
-            var results = new List<NewsItem>();
-
-            while (iterator.HasMoreResults)
-            {
-                var response = await iterator.ReadNextAsync(cancellationToken);
-                results.AddRange(response);
-            }
-
-            return ResultResponse<IEnumerable<NewsItem>>.Success(results);
-        }
-        catch (Exception ex)
-        {
-            return ResultResponse<IEnumerable<NewsItem>>.Failure(
-                $"Failed to fetch NewsItems by category and date range: {ex.Message}");
-        }
-    }
-
-    public async Task<ResultResponse<IEnumerable<NewsItem>>> GetByDateRangeAsync(
-        DateTimeOffset startDate,
-        DateTimeOffset endDate,
-        int limit = 500,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var query = new QueryDefinition(
-                "SELECT * FROM c WHERE c.CreatedAt >= @startDate AND c.CreatedAt < @endDate ORDER BY c.CreatedAt DESC OFFSET 0 LIMIT @limit")
-                .WithParameter("@startDate", startDate.ToString("o"))
-                .WithParameter("@endDate", endDate.ToString("o"))
+                "SELECT * FROM c ORDER BY c.CreatedAt DESC OFFSET 0 LIMIT @limit")
                 .WithParameter("@limit", limit);
 
-            var iterator = _container.GetItemQueryIterator<NewsItem>(query);
+            var options = new QueryRequestOptions
+            {
+                PartitionKey = new PartitionKey(partitionKey)
+            };
+
+            var iterator = _container.GetItemQueryIterator<NewsItemDocument>(query, requestOptions: options);
             var results = new List<NewsItem>();
 
             while (iterator.HasMoreResults)
             {
                 var response = await iterator.ReadNextAsync(cancellationToken);
-                results.AddRange(response);
+                results.AddRange(response.Select(doc => doc.ToDomain()));
             }
 
             return ResultResponse<IEnumerable<NewsItem>>.Success(results);
@@ -138,7 +96,7 @@ public sealed class NewsItemCosmosRepository(CosmosClient client, string databas
         catch (Exception ex)
         {
             return ResultResponse<IEnumerable<NewsItem>>.Failure(
-                $"Failed to fetch NewsItems by date range: {ex.Message}");
+                $"Failed to fetch NewsItems by category and month: {ex.Message}");
         }
     }
 
@@ -147,9 +105,12 @@ public sealed class NewsItemCosmosRepository(CosmosClient client, string databas
     {
         try
         {
-            var response = await _container.CreateItemAsync(newsItem, new PartitionKey(newsItem.Id.ToString()),
+            newsItem.ClearDomainEvents();
+            var document = NewsItemDocument.FromDomain(newsItem);
+
+            var response = await _container.CreateItemAsync(document, new PartitionKey(document.Key),
                 cancellationToken: cancellationToken);
-            return ResultResponse<NewsItem>.Success(response.Resource);
+            return ResultResponse<NewsItem>.Success(response.Resource.ToDomain());
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
         {
@@ -166,9 +127,12 @@ public sealed class NewsItemCosmosRepository(CosmosClient client, string databas
     {
         try
         {
-            var response = await _container.UpsertItemAsync(newsItem, new PartitionKey(newsItem.Id.ToString()),
+            newsItem.ClearDomainEvents();
+            var document = NewsItemDocument.FromDomain(newsItem);
+
+            var response = await _container.UpsertItemAsync(document, new PartitionKey(document.Key),
                 cancellationToken: cancellationToken);
-            return ResultResponse<NewsItem>.Success(response.Resource);
+            return ResultResponse<NewsItem>.Success(response.Resource.ToDomain());
         }
         catch (Exception ex)
         {

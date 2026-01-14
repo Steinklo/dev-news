@@ -2,50 +2,43 @@ using Anthropic;
 using Anthropic.Models.Messages;
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace DevNews.Infrastructure.Services;
 
-public class AnthropicOptions
+public static class AnthropicOptions
 {
-    public const string SectionName = "Anthropic";
-
-    /// <summary>
-    /// Anthropic API key
-    /// </summary>
-    public string ApiKey { get; set; } = string.Empty;
-
     /// <summary>
     /// Model to use (e.g., claude-sonnet-4-20250514, claude-haiku-4-20250514)
     /// </summary>
-    public string Model { get; set; } = "claude-haiku-4-5";
+    public static string Model => "claude-haiku-4-5";
 
     /// <summary>
     /// Maximum tokens in the response
     /// </summary>
-    public int MaxTokens { get; set; } = 4096;
+    public static int MaxTokens => 4096;
 }
 
 public class AnthropicAiService : IAiService
 {
     private readonly AnthropicClient _client;
-    private readonly AnthropicOptions _options;
     private readonly ILogger<AnthropicAiService> _logger;
 
     public AnthropicAiService(
-        IOptions<AnthropicOptions> options,
+        IConfiguration configuration,
         ILogger<AnthropicAiService> logger)
     {
-        _options = options.Value;
         _logger = logger;
+        var apiKey = configuration["AnthropicApiKey"];
 
-        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        if (string.IsNullOrWhiteSpace(apiKey))
         {
             throw new InvalidOperationException("Anthropic API key is not configured");
         }
 
-        _client = new AnthropicClient { APIKey = _options.ApiKey };
+        _client = new AnthropicClient { APIKey = apiKey };
     }
 
     public async Task<ResultResponse<string>> GenerateAsync(string prompt, CancellationToken ct = default)
@@ -54,27 +47,43 @@ public class AnthropicAiService : IAiService
         {
             _logger.LogDebug(
                 "Calling Anthropic API with model {Model}, prompt length: {Length}",
-                _options.Model,
+                AnthropicOptions.Model,
                 prompt.Length);
 
             var parameters = new MessageCreateParams
             {
-                Model = _options.Model,
-                MaxTokens = _options.MaxTokens,
+                Model = AnthropicOptions.Model,
+                MaxTokens = AnthropicOptions.MaxTokens,
+                System = "You are a JSON-only API. Output valid JSON without any preamble, explanation, or markdown formatting.",
                 Messages =
                 [
                     new MessageParam
                     {
                         Role = Role.User,
                         Content = prompt
+                    },
+                    // Prefill assistant response to force JSON output
+                    new MessageParam
+                    {
+                        Role = Role.Assistant,
+                        Content = "{"
                     }
                 ]
             };
 
             var message = await _client.Messages.Create(parameters, ct);
 
-            // Extract text content from response
-            var textContent = string.Join("", message.Content.Select(c => c.ToString()));
+            // Extract text content from response and prepend the prefilled "{"
+            var rawContent = "";
+            foreach (var block in message.Content)
+            {
+                if (block.Value is Anthropic.Models.Messages.TextBlock textBlock)
+                {
+                    rawContent += textBlock.Text ?? "";
+                }
+            }
+
+            var textContent = "{" + rawContent;
 
             if (string.IsNullOrWhiteSpace(textContent))
             {

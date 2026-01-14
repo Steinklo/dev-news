@@ -39,4 +39,6 @@ public class NewsUrl : ValueObject
     public override string ToString() => Value;
 
     public static implicit operator string(NewsUrl url) => url.Value;
+
+    internal static NewsUrl Reconstitute(string value) => new(value);
 }

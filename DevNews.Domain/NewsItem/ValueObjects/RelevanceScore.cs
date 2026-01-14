@@ -31,4 +31,6 @@ public class RelevanceScore : ValueObject
     public override string ToString() => Value.ToString();
 
     public static implicit operator int(RelevanceScore score) => score.Value;
+
+    internal static RelevanceScore Reconstitute(int value) => new(value);
 }

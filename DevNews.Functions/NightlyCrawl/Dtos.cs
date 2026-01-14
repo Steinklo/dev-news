@@ -1,12 +1,14 @@
+using System.Text.Json.Serialization;
+
 namespace DevNews.Functions.NightlyCrawl;
 
 /// <summary>
 /// Result of the nightly crawl orchestration
 /// </summary>
 public record NightlyCrawlResult(
-    int Discovered,
-    int Curated,
-    int Duplicates,
-    int Persisted,
-    int Failed,
-    TimeSpan Duration);
+    [property: JsonPropertyName("discovered")] int Discovered,
+    [property: JsonPropertyName("curated")] int Curated,
+    [property: JsonPropertyName("duplicates")] int Duplicates,
+    [property: JsonPropertyName("persisted")] int Persisted,
+    [property: JsonPropertyName("failed")] int Failed,
+    [property: JsonPropertyName("duration")] TimeSpan Duration);
