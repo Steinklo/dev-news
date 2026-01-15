@@ -80,6 +80,8 @@ jobs:
         with:
           app-name: 'func-devnews-api-dev'
           package: './publish'
+          scm-do-build-during-deployment: true
+          enable-oryx-build: true
 
   deploy-prod:
     runs-on: ubuntu-latest
@@ -105,4 +107,6 @@ jobs:
         with:
           app-name: 'func-devnews-api-prod'
           package: './publish'
+          scm-do-build-during-deployment: true
+          enable-oryx-build: true
 
