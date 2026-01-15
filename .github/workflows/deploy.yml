@@ -55,6 +55,7 @@ jobs:
           name: function-app
           path: ./publish
           retention-days: 7
+          include-hidden-files: true
 
   deploy-dev:
     runs-on: ubuntu-latest
