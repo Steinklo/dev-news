@@ -25,6 +25,7 @@ public class Orchestrator
 
         var discovered = 0;
         var curated = 0;
+        var filteredLowRelevance = 0;
         var duplicates = 0;
         var persisted = 0;
         var failed = 0;
@@ -46,13 +47,13 @@ public class Orchestrator
         catch (Exception ex)
         {
             logger.LogError(ex, "Discovery failed");
-            return new NightlyCrawlResult(0, 0, 0, 0, 1, TimeSpan.Zero);
+            return new NightlyCrawlResult(0, 0, 0, 0, 0, 1, TimeSpan.Zero);
         }
 
         if (crawledArticles.Count == 0)
         {
             logger.LogInformation("No articles discovered, ending orchestration");
-            return new NightlyCrawlResult(0, 0, 0, 0, 0, context.CurrentUtcDateTime - startTime);
+            return new NightlyCrawlResult(0, 0, 0, 0, 0, 0, context.CurrentUtcDateTime - startTime);
         }
 
         // Step 2: Curate articles sequentially to respect rate limits (50 req/min)
@@ -79,9 +80,23 @@ public class Orchestrator
         failed += discovered - curated;
         logger.LogInformation("Curated {Count} articles, {Failed} failed", curated, discovered - curated);
 
+        // Step 2.5: Filter out low-relevance articles (saves deduplication API costs)
+        var relevantArticles = cleanedArticles
+            .Where(a => a.RelevanceScore >= CrawlThresholds.MinRelevanceScore)
+            .ToList();
+
+        filteredLowRelevance = curated - relevantArticles.Count;
+        if (filteredLowRelevance > 0)
+        {
+            logger.LogInformation(
+                "Filtered {Count} articles with relevance < {Threshold}",
+                filteredLowRelevance,
+                CrawlThresholds.MinRelevanceScore);
+        }
+
         // Step 3: Check duplications sequentially to respect rate limits (50 req/min)
         var duplicationResults = new List<(CleanedArticle Article, bool IsDuplicate)>();
-        foreach (var article in cleanedArticles)
+        foreach (var article in relevantArticles)
         {
             var isDuplicate = await context.CallActivityAsync<bool>(
                 nameof(Activities.CheckDuplicationActivity),
@@ -99,7 +114,7 @@ public class Orchestrator
             .Select(r => r.Article)
             .ToList();
 
-        duplicates = curated - uniqueArticles.Count;
+        duplicates = relevantArticles.Count - uniqueArticles.Count;
         logger.LogInformation("Found {Duplicates} duplicates, {Unique} unique articles", duplicates,
             uniqueArticles.Count);
 
@@ -118,9 +133,9 @@ public class Orchestrator
         var duration = context.CurrentUtcDateTime - startTime;
 
         logger.LogInformation(
-            "Nightly crawl completed. Discovered: {Discovered}, Curated: {Curated}, Duplicates: {Duplicates}, Persisted: {Persisted}, Failed: {Failed}, Duration: {Duration}",
-            discovered, curated, duplicates, persisted, failed, duration);
+            "Nightly crawl completed. Discovered: {Discovered}, Curated: {Curated}, FilteredLowRelevance: {FilteredLowRelevance}, Duplicates: {Duplicates}, Persisted: {Persisted}, Failed: {Failed}, Duration: {Duration}",
+            discovered, curated, filteredLowRelevance, duplicates, persisted, failed, duration);
 
-        return new NightlyCrawlResult(discovered, curated, duplicates, persisted, failed, duration);
+        return new NightlyCrawlResult(discovered, curated, filteredLowRelevance, duplicates, persisted, failed, duration);
     }
 }

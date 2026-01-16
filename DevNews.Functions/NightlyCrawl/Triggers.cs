@@ -51,7 +51,7 @@ public class Triggers
         string instanceId,
         CancellationToken cancellationToken)
     {
-        var metadata = await client.GetInstanceAsync(instanceId);
+        var metadata = await client.GetInstanceAsync(instanceId, getInputsAndOutputs: true);
 
             if (metadata == null)
         {

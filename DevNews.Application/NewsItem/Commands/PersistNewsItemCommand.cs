@@ -8,26 +8,17 @@ namespace DevNews.Application.NewsItem.Commands;
 
 public record PersistNewsItemCommand(CleanedArticle Article) : IRequest<ResultResponse<Guid>>;
 
-public class PersistNewsItemHandler : IRequestHandler<PersistNewsItemCommand, ResultResponse<Guid>>
+public class PersistNewsItemHandler(
+    INewsItemRepository repository,
+    ILogger<PersistNewsItemHandler> logger) : IRequestHandler<PersistNewsItemCommand, ResultResponse<Guid>>
 {
-    private readonly INewsItemRepository _repository;
-    private readonly ILogger<PersistNewsItemHandler> _logger;
-
-    public PersistNewsItemHandler(
-        INewsItemRepository repository,
-        ILogger<PersistNewsItemHandler> logger)
-    {
-        _repository = repository;
-        _logger = logger;
-    }
-
     public async ValueTask<ResultResponse<Guid>> Handle(
         PersistNewsItemCommand request,
         CancellationToken cancellationToken)
     {
         var article = request.Article;
 
-        _logger.LogDebug("Creating NewsItem for: {Title}", article.Title);
+        logger.LogDebug("Creating NewsItem for: {Title}", article.Title);
 
         // Create domain object
         var newsItemResult = Domain.NewsItem.NewsItem.Create(
@@ -44,7 +35,7 @@ public class PersistNewsItemHandler : IRequestHandler<PersistNewsItemCommand, Re
 
         if (!newsItemResult.IsSuccess)
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Failed to create NewsItem for {Url}: {Error}",
                 article.Url,
                 newsItemResult.ErrorMessage);
@@ -52,18 +43,18 @@ public class PersistNewsItemHandler : IRequestHandler<PersistNewsItemCommand, Re
         }
 
         // Persist
-        var persistResult = await _repository.AddAsync(newsItemResult.Data!, cancellationToken);
+        var persistResult = await repository.AddAsync(newsItemResult.Data!, cancellationToken);
 
         if (!persistResult.IsSuccess)
         {
-            _logger.LogError(
+            logger.LogError(
                 "Failed to persist NewsItem {Url}: {Error}",
                 article.Url,
                 persistResult.ErrorMessage);
             return ResultResponse<Guid>.Failure(persistResult.ErrorMessage);
         }
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Persisted NewsItem {Id}: {Title} [{Category}]",
             persistResult.Data!.Id,
             article.Title,

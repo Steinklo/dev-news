@@ -4,28 +4,24 @@ using DevNews.Application.Common.Repositories;
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
 using DevNews.Application.Common.Models;
+using Microsoft.Extensions.Logging;
 
 namespace DevNews.Infrastructure.Services;
 
 /// <summary>
-/// Deduplication service using:
-/// 1. Exact URL match (fast path)
-/// 2. AI semantic check (catches rephrased duplicates)
+/// Deduplication service using AI semantic check to catch rephrased duplicates from different sources.
+/// Note: Exact URL matching is handled earlier in the crawl service.
 /// </summary>
-public class AiDuplicationService(IAiService aiService, INewsItemRepository repository) : IDuplicationService
+public class AiDuplicationService(
+    IAiService aiService,
+    INewsItemRepository repository,
+    ILogger<AiDuplicationService> logger) : IDuplicationService
 {
     public async Task<ResultResponse<bool>> IsDuplicateAsync(CleanedArticle article, CancellationToken ct = default)
     {
         try
         {
-            // TIER 1: Exact URL match (fastest)
-            var existingByUrl = await repository.GetByUrlAsync(article.Url.ToString(), ct);
-            if (existingByUrl.IsSuccess && existingByUrl.Data != null)
-            {
-                return ResultResponse<bool>.Success(true);
-            }
-
-            // TIER 2: AI semantic check
+            // AI semantic check - catches same story from different sources
             var articleDate = article.PublishedAt ?? DateTimeOffset.UtcNow;
             var startOfMonth = new DateTimeOffset(articleDate.Year, articleDate.Month, 1, 0, 0, 0, TimeSpan.Zero);
             var endOfMonth = startOfMonth.AddMonths(1);
@@ -52,6 +48,7 @@ public class AiDuplicationService(IAiService aiService, INewsItemRepository repo
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
             {
                 // If AI fails, fail open (assume not duplicate)
+                logger.LogWarning("AI deduplication check failed, assuming not duplicate: {Title}", article.Title);
                 return ResultResponse<bool>.Success(false);
             }
 
@@ -59,6 +56,11 @@ public class AiDuplicationService(IAiService aiService, INewsItemRepository repo
             if (!parseResult.IsSuccess)
             {
                 return ResultResponse<bool>.Success(false);
+            }
+
+            if (parseResult.Data)
+            {
+                logger.LogDebug("Duplicate detected via AI semantic check: {Title}", article.Title);
             }
 
             return ResultResponse<bool>.Success(parseResult.Data);

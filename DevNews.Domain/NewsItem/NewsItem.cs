@@ -25,9 +25,6 @@ public class NewsItem : AggregateRoot<Guid>
     public NewsCategory Category { get; private set; } = null!;
     public RelevanceScore RelevanceScore { get; private set; } = null!;
 
-    // Partition key: Category_YYYY-MM (e.g., "SecurityAndVulnerabilities_2026-01")
-    public string Key { get; internal set; } = null!;
-
     // Source of the article (e.g., "GitHub", "Hacker News", "Reddit")
     public string? Source { get; private set; }
 
@@ -43,8 +40,8 @@ public class NewsItem : AggregateRoot<Guid>
 
     // Timestamps
     public DateTimeOffset? PublishedAt { get; private set; }  // When the original article was published
-    public DateTimeOffset CreatedAt { get; internal set; }      // When we stored it
-    public DateTimeOffset? UpdatedAt { get; internal set; }     // When we last modified it
+    public DateTimeOffset CreatedAt { get; private set; }      // When we stored it
+    public DateTimeOffset? UpdatedAt { get; private set; }     // When we last modified it
 
     private NewsItem(
         Guid id,
@@ -71,10 +68,6 @@ public class NewsItem : AggregateRoot<Guid>
             _tags.AddRange(tags);
         PublishedAt = publishedAt;
         CreatedAt = DateTimeOffset.UtcNow;
-
-        // Compute partition key: Category_YYYY-MM
-        var keyDate = publishedAt ?? CreatedAt;
-        Key = $"{category.Value}_{keyDate:yyyy-MM}";
     }
 
     /// <summary>
@@ -143,7 +136,6 @@ public class NewsItem : AggregateRoot<Guid>
         string title,
         string summary,
         string url,
-        string key,
         CategoryEnum category,
         int relevanceScore,
         string? source,
@@ -167,7 +159,6 @@ public class NewsItem : AggregateRoot<Guid>
             tags: tags,
             publishedAt: publishedAt);
 
-        newsItem.Key = key;
         newsItem.CreatedAt = createdAt;
         newsItem.UpdatedAt = updatedAt;
 

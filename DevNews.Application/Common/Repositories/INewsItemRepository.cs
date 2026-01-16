@@ -18,6 +18,9 @@ public interface INewsItemRepository
         int limit = 50,
         CancellationToken cancellationToken = default);
 
-    Task<ResultResponse<Domain.NewsItem.NewsItem>> AddAsync(Domain.NewsItem.NewsItem newsItem, CancellationToken cancellationToken = default);
+    Task<ResultResponse<Domain.NewsItem.NewsItem>> AddAsync(
+        Domain.NewsItem.NewsItem newsItem,
+        CancellationToken cancellationToken = default);
+
     Task<ResultResponse<Domain.NewsItem.NewsItem>> UpdateAsync(Domain.NewsItem.NewsItem newsItem, CancellationToken cancellationToken = default);
 }

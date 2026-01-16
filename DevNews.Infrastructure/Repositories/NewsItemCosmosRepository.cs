@@ -100,7 +100,8 @@ public sealed class NewsItemCosmosRepository(CosmosClient client, string databas
         }
     }
 
-    public async Task<ResultResponse<NewsItem>> AddAsync(NewsItem newsItem,
+    public async Task<ResultResponse<NewsItem>> AddAsync(
+        NewsItem newsItem,
         CancellationToken cancellationToken = default)
     {
         try

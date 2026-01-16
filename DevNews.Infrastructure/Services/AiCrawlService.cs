@@ -1,7 +1,9 @@
 using System.ServiceModel.Syndication;
 using System.Xml;
+using DevNews.Application.Common.Repositories;
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
+using DevNews.Domain.NewsItem.ValueObjects;
 using Microsoft.Extensions.Logging;
 using SmartReader;
 
@@ -9,67 +11,68 @@ namespace DevNews.Infrastructure.Services;
 
 public static class CrawlServiceOptions
 {
-    public static int MaxArticlesPerFeed => 1;
     public static int MaxArticleAgeHours => 48;
 
     public static IReadOnlyList<string> RssFeedUrls =>
     [
         // Security & Vulnerabilities
         "https://github.com/security-advisories.atom",
-        // "https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss-analyzed.xml",
-        // "https://www.cisa.gov/uscert/ncas/alerts.xml",
-        // "https://snyk.io/vuln/feed",
-        // "https://krebsonsecurity.com/feed/",
-        // "https://feeds.feedburner.com/TheHackersNews",
-        // "https://www.bleepingcomputer.com/feed/",
-        // "https://www.troyhunt.com/rss/",
+        "https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss-analyzed.xml",
+        "https://www.cisa.gov/uscert/ncas/alerts.xml",
+        "https://krebsonsecurity.com/feed/",
+        "https://feeds.feedburner.com/TheHackersNews",
+        "https://www.troyhunt.com/rss/",
 
         // Programming Languages & Runtimes
         "https://nodejs.org/en/feed/blog.xml",
-        // "https://devblogs.microsoft.com/typescript/feed/",
-        // "https://blog.python.org/feeds/posts/default",
-        // "https://go.dev/blog/feed.atom",
-        // "https://blog.rust-lang.org/feed.xml",
-        // "https://devblogs.microsoft.com/dotnet/feed/",
+        "https://devblogs.microsoft.com/typescript/feed/",
+        "https://blog.python.org/feeds/posts/default",
+        "https://go.dev/blog/feed.atom",
+        "https://blog.rust-lang.org/feed.xml",
+        "https://devblogs.microsoft.com/dotnet/feed/",
 
         // Cloud & Infrastructure
         "https://azure.microsoft.com/en-us/updates/feed/",
-        // "https://aws.amazon.com/blogs/aws/feed/",
-        // "https://cloud.google.com/blog/rss",
-        // "https://kubernetes.io/feed.xml",
+        "https://aws.amazon.com/blogs/aws/feed/",
+        "https://cloud.google.com/blog/rss",
+        "https://kubernetes.io/feed.xml",
 
         // DevOps, CI/CD & Tools
         "https://github.blog/feed/",
-        // "https://www.docker.com/blog/feed/",
-        // "https://www.datadoghq.com/blog/feed/",
-        // "https://about.gitlab.com/atom.xml",
-        // "https://code.visualstudio.com/feed.xml",
+        "https://about.gitlab.com/atom.xml",
+        "https://code.visualstudio.com/feed.xml",
 
         // Frameworks & Libraries
         "https://react.dev/rss.xml",
-        // "https://nextjs.org/feed.xml",
-        // "https://spring.io/blog.atom",
-        // "https://www.djangoproject.com/rss/weblog/",
+        "https://nextjs.org/feed.xml",
+        "https://spring.io/blog.atom",
+        "https://www.djangoproject.com/rss/weblog/",
 
         // Developer News Aggregators
-        "https://hnrss.org/frontpage",
-        // "https://lobste.rs/rss",
-        // "https://www.infoq.com/feed"
+        "https://lobste.rs/rss",
+        "https://www.infoq.com/feed",
+
+        // High-Signal Engineering Blogs
+        "https://blog.cloudflare.com/rss/",
+        "https://tailscale.com/blog/index.xml",
+        "https://fly.io/blog/feed.xml"
     ];
 }
 
 public class AiCrawlService : ICrawlService
 {
     private readonly HttpClient _httpClient;
+    private readonly INewsItemRepository _repository;
     private readonly ILogger<AiCrawlService> _logger;
 
     public AiCrawlService(
         HttpClient httpClient,
+        INewsItemRepository repository,
         ILogger<AiCrawlService> logger)
     {
         _httpClient = httpClient;
+        _repository = repository;
         _logger = logger;
-
 
         _httpClient.DefaultRequestHeaders.Clear();
         _httpClient.DefaultRequestHeaders.Add("User-Agent",
@@ -141,19 +144,38 @@ public class AiCrawlService : ICrawlService
             return articles;
         }
 
-        // Process feed items
-        var recentItems = feed.Items
+        // Get recent items, try up to 5 candidates until we extract one successfully
+        var candidateItems = feed.Items
             .Where(item => item.PublishDate >= cutoffTime || item.LastUpdatedTime >= cutoffTime)
-            .Take(CrawlServiceOptions.MaxArticlesPerFeed)
+            .Take(5)
             .ToList();
 
-        foreach (var item in recentItems)
+        foreach (var item in candidateItems)
         {
+            // Stop after first successful extraction
+            if (articles.Count > 0)
+                break;
+
             ct.ThrowIfCancellationRequested();
 
             var articleUrl = GetArticleUrl(item);
             if (articleUrl == null)
             {
+                continue;
+            }
+
+            // Early duplicate check: canonicalize URL and check if already stored
+            var newsUrlResult = NewsUrl.Create(articleUrl.ToString());
+            if (!newsUrlResult.IsSuccess)
+            {
+                _logger.LogDebug("Invalid URL {Url}, skipping", articleUrl);
+                continue;
+            }
+
+            var existingArticle = await _repository.GetByUrlAsync(newsUrlResult.Data!.Value, ct);
+            if (existingArticle.IsSuccess && existingArticle.Data != null)
+            {
+                _logger.LogDebug("Article already exists: {Url}, skipping", articleUrl);
                 continue;
             }
 
@@ -163,7 +185,7 @@ public class AiCrawlService : ICrawlService
                 var html = await FetchContentAsync(articleUrl, ct);
                 if (string.IsNullOrWhiteSpace(html))
                 {
-                    _logger.LogDebug("Empty HTML for article {Url}", articleUrl);
+                    _logger.LogDebug("Empty HTML for article {Url}, trying next candidate", articleUrl);
                     continue;
                 }
 
@@ -173,7 +195,7 @@ public class AiCrawlService : ICrawlService
 
                 if (article == null || !article.IsReadable || string.IsNullOrWhiteSpace(article.TextContent))
                 {
-                    _logger.LogDebug("SmartReader couldn't extract content from {Url}", articleUrl);
+                    _logger.LogDebug("SmartReader couldn't extract content from {Url}, trying next candidate", articleUrl);
                     continue;
                 }
 
@@ -186,9 +208,16 @@ public class AiCrawlService : ICrawlService
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Failed to fetch article {Url}", articleUrl);
-                // Continue with other articles
+                _logger.LogDebug(ex, "Failed to fetch article {Url}, trying next candidate", articleUrl);
+                // Continue with next candidate
             }
+        }
+
+        if (articles.Count == 0 && candidateItems.Count > 0)
+        {
+            _logger.LogWarning(
+                "Failed to extract any articles from {FeedUrl} after trying {Count} candidates",
+                feedUrl, candidateItems.Count);
         }
 
         return articles;

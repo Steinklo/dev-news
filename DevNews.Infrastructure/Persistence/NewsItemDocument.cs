@@ -27,10 +27,14 @@ public class NewsItemDocument
 
     public static NewsItemDocument FromDomain(NewsItem newsItem)
     {
+        // Compute partition key: Category_YYYY-MM (persistence concern, not domain)
+        var keyDate = newsItem.PublishedAt ?? newsItem.CreatedAt;
+        var partitionKey = $"{newsItem.Category.Value}_{keyDate:yyyy-MM}";
+
         return new NewsItemDocument
         {
             id = newsItem.Id.ToString(),
-            Key = newsItem.Key,
+            Key = partitionKey,
             Title = newsItem.Title.Value,
             Summary = newsItem.Summary.Value,
             Url = newsItem.Url.Value,
@@ -53,7 +57,6 @@ public class NewsItemDocument
             title: Title,
             summary: Summary,
             url: Url,
-            key: Key,
             category: (CategoryEnum)Category,
             relevanceScore: RelevanceScore,
             source: Source,
