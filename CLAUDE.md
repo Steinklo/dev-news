@@ -182,29 +182,6 @@ CORE PROJECT RULES – NEVER VIOLATE THESE
 • Primary constructors for dependency injection where appropriate
 • Expression-bodied members for simple getters/methods
 
-**Domain Layer Patterns**:
-• Aggregate roots inherit from AggregateRoot<TId>
-• Value objects inherit from ValueObject with equality by value
-• Factory methods return ResultResponse<T> (never throw on validation failure)
-• Private constructors + public static Create() factory pattern
-• Internal Reconstitute() methods for repository deserialization (bypasses validation)
-• Domain events added to _domainEvents list, cleared after dispatch
-• Immutability: private setters, readonly collections exposed as IReadOnlyCollection
-
-**Application Layer Patterns**:
-• MediatR IRequest<ResultResponse<T>> for commands and queries
-• Pipeline behaviors: ValidationBehaviour, LoggingBehaviour, PerformanceBehaviour, UnhandledExceptionBehaviour
-• FluentValidation for input validation (before domain creation)
-• Thin handlers that orchestrate domain + infrastructure
-• Return ResultResponse<T> to calling layer (never throw for business logic failures)
-
-**Testing Patterns**:
-• xUnit for test framework
-• AAA pattern: Arrange, Act, Assert
-• Test names: MethodName_Scenario_ExpectedBehavior
-• Use FluentAssertions for readable assertions
-• Test domain logic in isolation (no infrastructure dependencies)
-
 **Error Handling**:
 • Domain validation returns ResultResponse<T>.Failure(message)
 • Application validation uses FluentValidation (throws ValidationException)
@@ -219,3 +196,21 @@ CORE PROJECT RULES – NEVER VIOLATE THESE
 • Structured logging with ILogger<T>
 • Configuration via IConfiguration (appsettings.json + environment variables)
 • Azure Functions isolated worker model (.NET 9)
+
+**Testing Patterns**:
+• xUnit for test framework
+• AAA pattern: Arrange, Act, Assert
+• Test names: MethodName_Scenario_ExpectedBehavior
+• Use FluentAssertions for readable assertions
+• Test domain logic in isolation (no infrastructure dependencies)
+
+# LAYER-SPECIFIC GUIDES
+
+For detailed patterns and step-by-step instructions when working in each layer, see:
+
+- **[DevNews.Domain/CLAUDE.md](DevNews.Domain/CLAUDE.md)** - Aggregate roots, value objects, factory methods, domain events
+- **[DevNews.Application/CLAUDE.md](DevNews.Application/CLAUDE.md)** - CQRS commands/queries, DTOs, service interfaces, pipeline behaviors
+- **[DevNews.Infrastructure/CLAUDE.md](DevNews.Infrastructure/CLAUDE.md)** - Cosmos DB repositories, AI services, prompt patterns, external integrations
+- **[DevNews.Functions/CLAUDE.md](DevNews.Functions/CLAUDE.md)** - HTTP endpoints, Durable Functions orchestration, activities
+
+These guides contain concrete code examples from the codebase and checklists for adding new features.
