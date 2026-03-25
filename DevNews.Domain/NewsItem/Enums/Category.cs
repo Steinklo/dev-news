@@ -8,8 +8,8 @@ public enum CategoryEnum
     AiModelsAndApis = 1,
     AiDeveloperTools = 2,
     AgentsAndFrameworks = 3,
-    AiInfrastructure = 4,
-    SecurityAndVulnerabilities = 5,
-    CloudAndInfrastructure = 6,
+    AiEngineering = 4,
+    AiSafetyAndSecurity = 5,
+    InfrastructureAndCloud = 6,
     OpenSourceAndCommunity = 7
 }

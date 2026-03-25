@@ -15,7 +15,7 @@ public class NewsItemTests
                                          "has been assigned a CVSS score of 9.8 indicating critical severity.";
     private const string ValidUrl = "https://example.com/security-advisory";
     private const int ValidRelevanceScore = 85;
-    private static readonly CategoryEnum ValidCategory = CategoryEnum.SecurityAndVulnerabilities;
+    private static readonly CategoryEnum ValidCategory = CategoryEnum.AiSafetyAndSecurity;
 
     [Fact]
     public void Create_WithValidData_ReturnsSuccess()
@@ -187,7 +187,7 @@ public class NewsItemTests
             title: ValidTitle,
             summary: ValidSummary,
             url: ValidUrl,
-            category: CategoryEnum.SecurityAndVulnerabilities,
+            category: CategoryEnum.AiSafetyAndSecurity,
             relevanceScore: ValidRelevanceScore,
             severity: SeverityEnum.Critical);
 
@@ -199,8 +199,8 @@ public class NewsItemTests
     [InlineData(CategoryEnum.AiModelsAndApis)]
     [InlineData(CategoryEnum.AiDeveloperTools)]
     [InlineData(CategoryEnum.AgentsAndFrameworks)]
-    [InlineData(CategoryEnum.AiInfrastructure)]
-    [InlineData(CategoryEnum.CloudAndInfrastructure)]
+    [InlineData(CategoryEnum.AiEngineering)]
+    [InlineData(CategoryEnum.InfrastructureAndCloud)]
     [InlineData(CategoryEnum.OpenSourceAndCommunity)]
     public void Create_WithSeverityForNonSecurityCategory_ReturnsFailure(CategoryEnum category)
     {
@@ -213,7 +213,7 @@ public class NewsItemTests
             severity: SeverityEnum.High);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("Severity can only be set for SecurityAndVulnerabilities", result.ErrorMessage);
+        Assert.Contains("Severity can only be set for AiSafetyAndSecurity", result.ErrorMessage);
     }
 
     [Fact]
@@ -277,7 +277,7 @@ public class NewsItemTests
             title: ValidTitle,
             summary: ValidSummary,
             url: ValidUrl,
-            category: CategoryEnum.SecurityAndVulnerabilities,
+            category: CategoryEnum.AiSafetyAndSecurity,
             relevanceScore: ValidRelevanceScore,
             severity: null);
 
@@ -296,7 +296,7 @@ public class NewsItemTests
             title: ValidTitle,
             summary: ValidSummary,
             url: ValidUrl,
-            category: CategoryEnum.SecurityAndVulnerabilities,
+            category: CategoryEnum.AiSafetyAndSecurity,
             relevanceScore: ValidRelevanceScore,
             severity: severity);
 

@@ -19,7 +19,7 @@ public class NewsCreatedEventTests
             title: "Critical Security Vulnerability Alert",
             summary: ValidSummary,
             url: "https://example.com/article",
-            category: CategoryEnum.SecurityAndVulnerabilities,
+            category: CategoryEnum.AiSafetyAndSecurity,
             relevanceScore: 75).Data!;
     }
 

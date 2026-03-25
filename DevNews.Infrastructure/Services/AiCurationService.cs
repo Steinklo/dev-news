@@ -156,7 +156,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
                 "- summary: A TL;DR summary of the article content (80-160 words, dense, no fluff, developer language)");
             sb.AppendLine("- category: The best-fit category from the allowed list");
             sb.AppendLine("- relevanceScore: 0-100 indicating how relevant this is for professional developers");
-            sb.AppendLine("- severity: ONLY for SecurityAndVulnerabilities category - one of: " + severityList);
+            sb.AppendLine("- severity: ONLY for AiSafetyAndSecurity category - one of: " + severityList);
             sb.AppendLine(
                 "- tags: Array of max 5 tags for filtering (e.g. cve, kubernetes, go1.24, breaking-change, supply-chain)");
             sb.AppendLine("- publishedAt: The publication date in ISO 8601 format (if available, otherwise null)");
@@ -172,7 +172,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
             sb.AppendLine($"- Category must be exactly one of: {categoriesList}");
             sb.AppendLine(
                 "- relevanceScore: 90+ for major model releases/breaking API changes, 70-89 for important framework updates/research, 50-69 for notable community content, below 50 for tangentially-related content");
-            sb.AppendLine("- severity is REQUIRED for SecurityAndVulnerabilities, must be null for other categories");
+            sb.AppendLine("- severity is REQUIRED for AiSafetyAndSecurity, must be null for other categories");
             sb.AppendLine("- tags: max 5, lowercase, for search/filtering (e.g. cve, kubernetes, breaking-change)");
             sb.AppendLine("- Reject ads, clickbait, low-depth posts, paywalled content summaries");
             sb.AppendLine();
@@ -183,7 +183,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
             sb.AppendLine("  \"data\": {");
             sb.AppendLine("    \"title\": \"...\",");
             sb.AppendLine("    \"summary\": \"...\",");
-            sb.AppendLine("    \"category\": \"SecurityAndVulnerabilities\",");
+            sb.AppendLine("    \"category\": \"AiSafetyAndSecurity\",");
             sb.AppendLine("    \"relevanceScore\": 85,");
             sb.AppendLine("    \"severity\": \"High\" or null,");
             sb.AppendLine("    \"tags\": [\"cve\", \"openssl\", \"critical\"],");
@@ -316,13 +316,13 @@ public class AiCurationService(IAiService aiService) : ICurationService
             }
 
             // Validate severity rules
-            if (category == CategoryEnum.SecurityAndVulnerabilities && !severity.HasValue)
+            if (category == CategoryEnum.AiSafetyAndSecurity && !severity.HasValue)
             {
                 return ResultResponse<CleanedArticle>.Failure(
-                    "severity is required for SecurityAndVulnerabilities category");
+                    "severity is required for AiSafetyAndSecurity category");
             }
 
-            if (category != CategoryEnum.SecurityAndVulnerabilities && severity.HasValue)
+            if (category != CategoryEnum.AiSafetyAndSecurity && severity.HasValue)
             {
                 severity = null; // Ignore severity for non-security categories
             }

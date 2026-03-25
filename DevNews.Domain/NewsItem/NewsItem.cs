@@ -31,7 +31,7 @@ public class NewsItem : AggregateRoot<Guid>
     // Author of the article if available
     public string? Author { get; private set; }
 
-    // Optional: only for SecurityAndVulnerabilities category
+    // Optional: only for AiSafetyAndSecurity category
     public SeverityEnum? Severity { get; private set; }
 
     // Tags for filtering/search (max 5): e.g. cve, kubernetes, go1.24, breaking-change
@@ -107,8 +107,8 @@ public class NewsItem : AggregateRoot<Guid>
             return ResultResponse<NewsItem>.Failure(relevanceResult.ErrorMessage);
 
         // Validate severity is only set for security items
-        if (severity.HasValue && category != CategoryEnum.SecurityAndVulnerabilities)
-            return ResultResponse<NewsItem>.Failure("Severity can only be set for SecurityAndVulnerabilities category");
+        if (severity.HasValue && category != CategoryEnum.AiSafetyAndSecurity)
+            return ResultResponse<NewsItem>.Failure("Severity can only be set for AiSafetyAndSecurity category");
 
         var newsItem = new NewsItem(
             id: Guid.CreateVersion7(),

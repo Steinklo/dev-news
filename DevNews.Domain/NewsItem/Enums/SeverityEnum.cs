@@ -2,7 +2,7 @@ namespace DevNews.Domain.NewsItem.Enums;
 
 /// <summary>
 /// Severity levels for security-related news items.
-/// Only applicable when Category is SecurityAndVulnerabilities.
+/// Only applicable when Category is AiSafetyAndSecurity.
 /// </summary>
 public enum SeverityEnum
 {
