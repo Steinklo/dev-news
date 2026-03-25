@@ -6,14 +6,13 @@ namespace DevNews.UnitTests.Domain.NewsItem.ValueObjects;
 public class NewsCategoryTests
 {
     [Theory]
-    [InlineData(CategoryEnum.SecurityAndVulnerabilities)]
-    [InlineData(CategoryEnum.ProgrammingLanguagesAndRuntimes)]
-    [InlineData(CategoryEnum.FrameworksAndLibraries)]
-    [InlineData(CategoryEnum.CloudAndInfrastructure)]
-    [InlineData(CategoryEnum.DevOpsCiCdObservabilityTesting)]
-    [InlineData(CategoryEnum.AiMlDeveloperTooling)]
-    [InlineData(CategoryEnum.PerformanceAndArchitecturePatterns)]
-    [InlineData(CategoryEnum.DeveloperToolsIdesProductivity)]
+    [InlineData(CategoryEnum.AiModelsAndApis)]
+    [InlineData(CategoryEnum.AiDeveloperTools)]
+    [InlineData(CategoryEnum.AgentsAndFrameworks)]
+    [InlineData(CategoryEnum.AiEngineering)]
+    [InlineData(CategoryEnum.AiSafetyAndSecurity)]
+    [InlineData(CategoryEnum.InfrastructureAndCloud)]
+    [InlineData(CategoryEnum.OpenSourceAndCommunity)]
     public void Create_ValidCategory_ReturnsSuccess(CategoryEnum category)
     {
         var result = NewsCategory.Create(category);
@@ -36,25 +35,25 @@ public class NewsCategoryTests
     [Fact]
     public void ImplicitConversion_ToCategoryEnum_ReturnsValue()
     {
-        var result = NewsCategory.Create(CategoryEnum.SecurityAndVulnerabilities);
+        var result = NewsCategory.Create(CategoryEnum.AiSafetyAndSecurity);
         CategoryEnum value = result.Data!;
 
-        Assert.Equal(CategoryEnum.SecurityAndVulnerabilities, value);
+        Assert.Equal(CategoryEnum.AiSafetyAndSecurity, value);
     }
 
     [Fact]
     public void ToString_ReturnsEnumName()
     {
-        var result = NewsCategory.Create(CategoryEnum.CloudAndInfrastructure);
+        var result = NewsCategory.Create(CategoryEnum.InfrastructureAndCloud);
 
-        Assert.Equal("CloudAndInfrastructure", result.Data!.ToString());
+        Assert.Equal("InfrastructureAndCloud", result.Data!.ToString());
     }
 
     [Fact]
     public void Equals_SameCategory_ReturnsTrue()
     {
-        var category1 = NewsCategory.Create(CategoryEnum.AiMlDeveloperTooling).Data!;
-        var category2 = NewsCategory.Create(CategoryEnum.AiMlDeveloperTooling).Data!;
+        var category1 = NewsCategory.Create(CategoryEnum.AiDeveloperTools).Data!;
+        var category2 = NewsCategory.Create(CategoryEnum.AiDeveloperTools).Data!;
 
         Assert.True(category1.Equals(category2));
     }
@@ -62,8 +61,8 @@ public class NewsCategoryTests
     [Fact]
     public void Equals_DifferentCategory_ReturnsFalse()
     {
-        var category1 = NewsCategory.Create(CategoryEnum.SecurityAndVulnerabilities).Data!;
-        var category2 = NewsCategory.Create(CategoryEnum.CloudAndInfrastructure).Data!;
+        var category1 = NewsCategory.Create(CategoryEnum.AiSafetyAndSecurity).Data!;
+        var category2 = NewsCategory.Create(CategoryEnum.InfrastructureAndCloud).Data!;
 
         Assert.False(category1.Equals(category2));
     }
@@ -71,8 +70,8 @@ public class NewsCategoryTests
     [Fact]
     public void GetHashCode_SameCategory_ReturnsSameHash()
     {
-        var category1 = NewsCategory.Create(CategoryEnum.FrameworksAndLibraries).Data!;
-        var category2 = NewsCategory.Create(CategoryEnum.FrameworksAndLibraries).Data!;
+        var category1 = NewsCategory.Create(CategoryEnum.AgentsAndFrameworks).Data!;
+        var category2 = NewsCategory.Create(CategoryEnum.AgentsAndFrameworks).Data!;
 
         Assert.Equal(category1.GetHashCode(), category2.GetHashCode());
     }

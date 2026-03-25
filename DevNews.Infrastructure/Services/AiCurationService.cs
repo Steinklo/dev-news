@@ -14,83 +14,66 @@ public class AiCurationService(IAiService aiService) : ICurationService
     /// </summary>
     private static readonly Dictionary<string, string> SourceMappings = new(StringComparer.OrdinalIgnoreCase)
     {
-        // Major tech news
-        ["news.ycombinator.com"] = "Hacker News",
-        ["ycombinator.com"] = "Hacker News",
-        ["techcrunch.com"] = "TechCrunch",
-        ["arstechnica.com"] = "Ars Technica",
-        ["theverge.com"] = "The Verge",
-        ["wired.com"] = "Wired",
-        ["zdnet.com"] = "ZDNet",
-        ["infoworld.com"] = "InfoWorld",
+        // AI Model Providers
+        ["openai.com"] = "OpenAI",
+        ["anthropic.com"] = "Anthropic",
+        ["blog.google"] = "Google AI",
+        ["ai.google.dev"] = "Google AI",
+        ["deepmind.google"] = "Google DeepMind",
+        ["ai.meta.com"] = "Meta AI",
+        ["mistral.ai"] = "Mistral AI",
+        ["cohere.com"] = "Cohere",
 
-        // Dev platforms
-        ["github.com"] = "GitHub",
-        ["github.blog"] = "GitHub Blog",
-        ["gitlab.com"] = "GitLab",
-        ["dev.to"] = "DEV Community",
-        ["medium.com"] = "Medium",
-        ["hashnode.dev"] = "Hashnode",
-        ["stackoverflow.com"] = "Stack Overflow",
-        ["stackoverflow.blog"] = "Stack Overflow Blog",
+        // AI Developer Platforms
+        ["huggingface.co"] = "Hugging Face",
+        ["replicate.com"] = "Replicate",
+        ["together.ai"] = "Together AI",
+        ["fireworks.ai"] = "Fireworks AI",
+        ["groq.com"] = "Groq",
 
-        // Cloud providers
+        // AI Frameworks & Tools
+        ["blog.langchain.dev"] = "LangChain",
+        ["langchain.com"] = "LangChain",
+        ["llamaindex.ai"] = "LlamaIndex",
+        ["docs.crewai.com"] = "CrewAI",
+
+        // AI News & Analysis
+        ["simonwillison.net"] = "Simon Willison",
+        ["latent.space"] = "Latent Space",
+        ["www.latent.space"] = "Latent Space",
+
+        // Cloud / AI Infrastructure
         ["aws.amazon.com"] = "AWS",
         ["cloud.google.com"] = "Google Cloud",
         ["azure.microsoft.com"] = "Microsoft Azure",
-        ["blog.cloudflare.com"] = "Cloudflare",
-        ["cloudflare.com"] = "Cloudflare",
-        ["vercel.com"] = "Vercel",
-        ["netlify.com"] = "Netlify",
+        ["nvidia.com"] = "NVIDIA",
+        ["developer.nvidia.com"] = "NVIDIA Developer",
 
-        // Company blogs
-        ["engineering.fb.com"] = "Meta Engineering",
-        ["netflixtechblog.com"] = "Netflix Tech Blog",
-        ["uber.com/blog"] = "Uber Engineering",
-        ["blog.google"] = "Google Blog",
-        ["developers.google.com"] = "Google Developers",
-        ["developer.chrome.com"] = "Chrome Developers",
-        ["webkit.org"] = "WebKit",
-        ["mozilla.org"] = "Mozilla",
-        ["blog.mozilla.org"] = "Mozilla Blog",
-        ["hacks.mozilla.org"] = "Mozilla Hacks",
-        ["devblogs.microsoft.com"] = "Microsoft DevBlogs",
-        ["openai.com"] = "OpenAI",
-        ["anthropic.com"] = "Anthropic",
-
-        // Programming language official
-        ["go.dev"] = "Go",
-        ["blog.golang.org"] = "Go Blog",
-        ["rust-lang.org"] = "Rust",
-        ["blog.rust-lang.org"] = "Rust Blog",
-        ["python.org"] = "Python",
-        ["nodejs.org"] = "Node.js",
-        ["kotlinlang.org"] = "Kotlin",
-        ["swift.org"] = "Swift",
-        ["dotnet.microsoft.com"] = ".NET",
-        ["devblogs.microsoft.com/dotnet"] = ".NET Blog",
-        ["typescriptlang.org"] = "TypeScript",
+        // Dev Platforms
+        ["github.com"] = "GitHub",
+        ["github.blog"] = "GitHub Blog",
+        ["dev.to"] = "DEV Community",
+        ["medium.com"] = "Medium",
 
         // Security
-        ["cve.mitre.org"] = "CVE",
-        ["nvd.nist.gov"] = "NVD",
-        ["security.googleblog.com"] = "Google Security Blog",
-        ["msrc.microsoft.com"] = "Microsoft Security",
         ["krebsonsecurity.com"] = "Krebs on Security",
         ["bleepingcomputer.com"] = "BleepingComputer",
-        ["theregister.com"] = "The Register",
+        ["thehackernews.com"] = "The Hacker News",
+        ["cve.mitre.org"] = "CVE",
+        ["nvd.nist.gov"] = "NVD",
 
-        // Reddit
+        // Aggregators
+        ["news.ycombinator.com"] = "Hacker News",
+        ["ycombinator.com"] = "Hacker News",
+        ["lobste.rs"] = "Lobsters",
+        ["infoq.com"] = "InfoQ",
         ["reddit.com"] = "Reddit",
         ["old.reddit.com"] = "Reddit",
 
-        // Other
-        ["lobste.rs"] = "Lobsters",
-        ["slashdot.org"] = "Slashdot",
-        ["dzone.com"] = "DZone",
-        ["infoq.com"] = "InfoQ",
-        ["martinfowler.com"] = "Martin Fowler",
-        ["jwz.org"] = "JWZ",
+        // Company Engineering Blogs
+        ["engineering.fb.com"] = "Meta Engineering",
+        ["devblogs.microsoft.com"] = "Microsoft DevBlogs",
+        ["blog.cloudflare.com"] = "Cloudflare",
     };
 
     private static string ResolveSource(Uri url)
@@ -162,7 +145,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
             var severityList = string.Join(", ", Enum.GetNames<SeverityEnum>());
 
             var sb = new StringBuilder();
-            sb.AppendLine("You are an expert developer news curator.");
+            sb.AppendLine("You are an expert AI developer news curator specializing in artificial intelligence, machine learning, and AI engineering content.");
             sb.AppendLine();
             sb.AppendLine("Extract and curate the following article:");
             sb.AppendLine($"Article URL: {articleUrl}");
@@ -173,7 +156,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
                 "- summary: A TL;DR summary of the article content (80-160 words, dense, no fluff, developer language)");
             sb.AppendLine("- category: The best-fit category from the allowed list");
             sb.AppendLine("- relevanceScore: 0-100 indicating how relevant this is for professional developers");
-            sb.AppendLine("- severity: ONLY for SecurityAndVulnerabilities category - one of: " + severityList);
+            sb.AppendLine("- severity: ONLY for AiSafetyAndSecurity category - one of: " + severityList);
             sb.AppendLine(
                 "- tags: Array of max 5 tags for filtering (e.g. cve, kubernetes, go1.24, breaking-change, supply-chain)");
             sb.AppendLine("- publishedAt: The publication date in ISO 8601 format (if available, otherwise null)");
@@ -181,15 +164,15 @@ public class AiCurationService(IAiService aiService) : ICurationService
             sb.AppendLine();
             sb.AppendLine("Strict rules:");
             sb.AppendLine(
-                "- Only content clearly relevant for software developers (reject marketing, HR, business-only, personal blogs without technical depth)");
+                "- Only content clearly relevant for AI developers and engineers (reject general web dev without AI angle, HR, business-only, marketing, or personal blogs without AI/ML technical depth)");
             sb.AppendLine(
                 $"- Title must be {CurationRules.MinTitleLength}–{CurationRules.MaxTitleLength} characters and factual");
             sb.AppendLine(
                 $"- Summary (TL;DR) must be {CurationRules.MinSummaryLength}–{CurationRules.MaxSummaryLength} characters, concise, spoiler-free");
             sb.AppendLine($"- Category must be exactly one of: {categoriesList}");
             sb.AppendLine(
-                "- relevanceScore: 90+ for critical/breaking news, 70-89 for important updates, 50-69 for notable, below 50 for marginal");
-            sb.AppendLine("- severity is REQUIRED for SecurityAndVulnerabilities, must be null for other categories");
+                "- relevanceScore: 90+ for major model releases/breaking API changes, 70-89 for important framework updates/research, 50-69 for notable community content, below 50 for tangentially-related content");
+            sb.AppendLine("- severity is REQUIRED for AiSafetyAndSecurity, must be null for other categories");
             sb.AppendLine("- tags: max 5, lowercase, for search/filtering (e.g. cve, kubernetes, breaking-change)");
             sb.AppendLine("- Reject ads, clickbait, low-depth posts, paywalled content summaries");
             sb.AppendLine();
@@ -200,7 +183,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
             sb.AppendLine("  \"data\": {");
             sb.AppendLine("    \"title\": \"...\",");
             sb.AppendLine("    \"summary\": \"...\",");
-            sb.AppendLine("    \"category\": \"SecurityAndVulnerabilities\",");
+            sb.AppendLine("    \"category\": \"AiSafetyAndSecurity\",");
             sb.AppendLine("    \"relevanceScore\": 85,");
             sb.AppendLine("    \"severity\": \"High\" or null,");
             sb.AppendLine("    \"tags\": [\"cve\", \"openssl\", \"critical\"],");
@@ -333,13 +316,13 @@ public class AiCurationService(IAiService aiService) : ICurationService
             }
 
             // Validate severity rules
-            if (category == CategoryEnum.SecurityAndVulnerabilities && !severity.HasValue)
+            if (category == CategoryEnum.AiSafetyAndSecurity && !severity.HasValue)
             {
                 return ResultResponse<CleanedArticle>.Failure(
-                    "severity is required for SecurityAndVulnerabilities category");
+                    "severity is required for AiSafetyAndSecurity category");
             }
 
-            if (category != CategoryEnum.SecurityAndVulnerabilities && severity.HasValue)
+            if (category != CategoryEnum.AiSafetyAndSecurity && severity.HasValue)
             {
                 severity = null; // Ignore severity for non-security categories
             }

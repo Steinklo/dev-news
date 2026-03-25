@@ -19,7 +19,7 @@ public class NewsCreatedEventTests
             title: "Critical Security Vulnerability Alert",
             summary: ValidSummary,
             url: "https://example.com/article",
-            category: CategoryEnum.SecurityAndVulnerabilities,
+            category: CategoryEnum.AiSafetyAndSecurity,
             relevanceScore: 75).Data!;
     }
 
@@ -78,7 +78,7 @@ public class NewsCreatedEventTests
             title: "Critical Security Vulnerability Alert",
             summary: ValidSummary,
             url: "https://example.com/article",
-            category: CategoryEnum.FrameworksAndLibraries,
+            category: CategoryEnum.AgentsAndFrameworks,
             relevanceScore: 80).Data!;
 
         var evt = Assert.Single(newsItem.DomainEvents);
