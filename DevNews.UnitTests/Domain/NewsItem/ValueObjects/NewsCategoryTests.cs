@@ -6,14 +6,13 @@ namespace DevNews.UnitTests.Domain.NewsItem.ValueObjects;
 public class NewsCategoryTests
 {
     [Theory]
+    [InlineData(CategoryEnum.AiModelsAndApis)]
+    [InlineData(CategoryEnum.AiDeveloperTools)]
+    [InlineData(CategoryEnum.AgentsAndFrameworks)]
+    [InlineData(CategoryEnum.AiInfrastructure)]
     [InlineData(CategoryEnum.SecurityAndVulnerabilities)]
-    [InlineData(CategoryEnum.ProgrammingLanguagesAndRuntimes)]
-    [InlineData(CategoryEnum.FrameworksAndLibraries)]
     [InlineData(CategoryEnum.CloudAndInfrastructure)]
-    [InlineData(CategoryEnum.DevOpsCiCdObservabilityTesting)]
-    [InlineData(CategoryEnum.AiMlDeveloperTooling)]
-    [InlineData(CategoryEnum.PerformanceAndArchitecturePatterns)]
-    [InlineData(CategoryEnum.DeveloperToolsIdesProductivity)]
+    [InlineData(CategoryEnum.OpenSourceAndCommunity)]
     public void Create_ValidCategory_ReturnsSuccess(CategoryEnum category)
     {
         var result = NewsCategory.Create(category);
@@ -53,8 +52,8 @@ public class NewsCategoryTests
     [Fact]
     public void Equals_SameCategory_ReturnsTrue()
     {
-        var category1 = NewsCategory.Create(CategoryEnum.AiMlDeveloperTooling).Data!;
-        var category2 = NewsCategory.Create(CategoryEnum.AiMlDeveloperTooling).Data!;
+        var category1 = NewsCategory.Create(CategoryEnum.AiDeveloperTools).Data!;
+        var category2 = NewsCategory.Create(CategoryEnum.AiDeveloperTools).Data!;
 
         Assert.True(category1.Equals(category2));
     }
@@ -71,8 +70,8 @@ public class NewsCategoryTests
     [Fact]
     public void GetHashCode_SameCategory_ReturnsSameHash()
     {
-        var category1 = NewsCategory.Create(CategoryEnum.FrameworksAndLibraries).Data!;
-        var category2 = NewsCategory.Create(CategoryEnum.FrameworksAndLibraries).Data!;
+        var category1 = NewsCategory.Create(CategoryEnum.AgentsAndFrameworks).Data!;
+        var category2 = NewsCategory.Create(CategoryEnum.AgentsAndFrameworks).Data!;
 
         Assert.Equal(category1.GetHashCode(), category2.GetHashCode());
     }

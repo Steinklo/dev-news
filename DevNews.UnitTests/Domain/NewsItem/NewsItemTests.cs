@@ -196,13 +196,12 @@ public class NewsItemTests
     }
 
     [Theory]
-    [InlineData(CategoryEnum.ProgrammingLanguagesAndRuntimes)]
-    [InlineData(CategoryEnum.FrameworksAndLibraries)]
+    [InlineData(CategoryEnum.AiModelsAndApis)]
+    [InlineData(CategoryEnum.AiDeveloperTools)]
+    [InlineData(CategoryEnum.AgentsAndFrameworks)]
+    [InlineData(CategoryEnum.AiInfrastructure)]
     [InlineData(CategoryEnum.CloudAndInfrastructure)]
-    [InlineData(CategoryEnum.DevOpsCiCdObservabilityTesting)]
-    [InlineData(CategoryEnum.AiMlDeveloperTooling)]
-    [InlineData(CategoryEnum.PerformanceAndArchitecturePatterns)]
-    [InlineData(CategoryEnum.DeveloperToolsIdesProductivity)]
+    [InlineData(CategoryEnum.OpenSourceAndCommunity)]
     public void Create_WithSeverityForNonSecurityCategory_ReturnsFailure(CategoryEnum category)
     {
         var result = DevNews.Domain.NewsItem.NewsItem.Create(

@@ -15,47 +15,27 @@ public static class CrawlServiceOptions
 
     public static IReadOnlyList<string> RssFeedUrls =>
     [
-        // Security & Vulnerabilities
-        "https://github.com/security-advisories.atom",
-        "https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss-analyzed.xml",
-        "https://www.cisa.gov/uscert/ncas/alerts.xml",
-        "https://krebsonsecurity.com/feed/",
+        // AI Model Providers
+        "https://openai.com/blog/rss.xml",
+        "https://www.anthropic.com/feed",
+        "https://blog.google/technology/ai/rss/",
+        "https://ai.meta.com/blog/rss/",
+
+        // AI Developer Tools & Frameworks
+        "https://huggingface.co/blog/feed.xml",
+        "https://blog.langchain.dev/rss/",
+
+        // AI News & Analysis
+        "https://simonwillison.net/atom/everything/",
+        "https://www.latent.space/feed",
+
+        // Security
         "https://feeds.feedburner.com/TheHackersNews",
-        "https://www.troyhunt.com/rss/",
+        "https://krebsonsecurity.com/feed/",
 
-        // Programming Languages & Runtimes
-        "https://nodejs.org/en/feed/blog.xml",
-        "https://devblogs.microsoft.com/typescript/feed/",
-        "https://blog.python.org/feeds/posts/default",
-        "https://go.dev/blog/feed.atom",
-        "https://blog.rust-lang.org/feed.xml",
-        "https://devblogs.microsoft.com/dotnet/feed/",
-
-        // Cloud & Infrastructure
-        "https://azure.microsoft.com/en-us/updates/feed/",
-        "https://aws.amazon.com/blogs/aws/feed/",
-        "https://cloud.google.com/blog/rss",
-        "https://kubernetes.io/feed.xml",
-
-        // DevOps, CI/CD & Tools
-        "https://github.blog/feed/",
-        "https://about.gitlab.com/atom.xml",
-        "https://code.visualstudio.com/feed.xml",
-
-        // Frameworks & Libraries
-        "https://react.dev/rss.xml",
-        "https://nextjs.org/feed.xml",
-        "https://spring.io/blog.atom",
-        "https://www.djangoproject.com/rss/weblog/",
-
-        // Developer News Aggregators
-        "https://lobste.rs/rss",
-        "https://www.infoq.com/feed",
-
-        // High-Signal Engineering Blogs
-        "https://blog.cloudflare.com/rss/",
-        "https://tailscale.com/blog/index.xml",
-        "https://fly.io/blog/feed.xml"
+        // High-Signal Aggregators
+        "https://lobste.rs/t/ai.rss",
+        "https://news.ycombinator.com/rss"
     ];
 }
 
