@@ -2,13 +2,14 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using DevNews.Application.Common.Models;
+using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace DevNews.Infrastructure.Services;
 
-public class LinkedInPublishingService
+public class LinkedInPublishingService : IPlatformVideoPublisher
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<LinkedInPublishingService> _logger;

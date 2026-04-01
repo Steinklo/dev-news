@@ -51,27 +51,7 @@ public class Triggers
         string instanceId,
         CancellationToken cancellationToken)
     {
-        var metadata = await client.GetInstanceAsync(instanceId, getInputsAndOutputs: true);
-
-            if (metadata == null)
-        {
-            var notFound = req.CreateResponse(System.Net.HttpStatusCode.NotFound);
-                await notFound.WriteAsJsonAsync(new { error = "Instance not found" }, cancellationToken);
-            return notFound;
-        }
-
-        var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-        await response.WriteAsJsonAsync(new
-        {
-            instance_id = metadata.InstanceId,
-            status = metadata.RuntimeStatus.ToString(),
-            created_at = metadata.CreatedAt,
-            last_updated_at = metadata.LastUpdatedAt,
-            output = metadata.RuntimeStatus == OrchestrationRuntimeStatus.Completed
-                ? metadata.ReadOutputAs<NightlyCrawlResult>()
-                : null
-        }, cancellationToken);
-
-        return response;
+        return await Common.OrchestrationStatusHelper.GetStatusResponse<NightlyCrawlResult>(
+            req, client, instanceId, cancellationToken);
     }
 }
