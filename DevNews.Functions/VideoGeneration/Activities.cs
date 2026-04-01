@@ -1,5 +1,6 @@
 using DevNews.Application.Common.Models;
 using DevNews.Application.ShortVideo.Commands;
+using DevNews.Application.ShortVideo.Queries;
 using DevNews.Application.ShortVideo.Dtos;
 using DevNews.Domain.ShortVideo.Enums;
 using Mediator;
@@ -26,7 +27,7 @@ public class Activities
     {
         _logger.LogInformation("Activity: Selecting video-eligible items");
 
-        var result = await _mediator.Send(new SelectVideoEligibleItemsCommand(), cancellationToken);
+        var result = await _mediator.Send(new SelectVideoEligibleItemsQuery(), cancellationToken);
 
         if (!result.IsSuccess)
             throw new InvalidOperationException($"Selection failed: {result.ErrorMessage}");

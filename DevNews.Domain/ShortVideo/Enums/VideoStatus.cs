@@ -5,9 +5,7 @@ namespace DevNews.Domain.ShortVideo.Enums;
 /// </summary>
 public enum VideoStatus
 {
-    Draft = 1,
-    ScriptGenerated = 2,
-    VideoGenerated = 3,
-    Published = 4,
-    Failed = 5
+    VideoGenerated = 1,
+    Published = 2,
+    Failed = 3
 }

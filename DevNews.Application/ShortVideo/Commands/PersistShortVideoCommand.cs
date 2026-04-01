@@ -50,7 +50,10 @@ public class PersistShortVideoHandler(
         {
             foreach (var pub in request.Publications)
             {
-                shortVideo.AddPublication(pub.Platform, pub.ExternalId, pub.PublishedUrl);
+                var pubResult = shortVideo.AddPublication(pub.Platform, pub.ExternalId, pub.PublishedUrl);
+                if (!pubResult.IsSuccess)
+                    logger.LogWarning("Failed to add publication for {Platform}: {Error}",
+                        pub.Platform, pubResult.ErrorMessage);
             }
         }
 

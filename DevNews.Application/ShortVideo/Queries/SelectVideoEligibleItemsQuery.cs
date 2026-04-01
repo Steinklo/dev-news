@@ -5,9 +5,9 @@ using DevNews.Domain.NewsItem.Enums;
 using Mediator;
 using Microsoft.Extensions.Logging;
 
-namespace DevNews.Application.ShortVideo.Commands;
+namespace DevNews.Application.ShortVideo.Queries;
 
-public record SelectVideoEligibleItemsCommand(
+public record SelectVideoEligibleItemsQuery(
     int MinRelevanceScore = 85,
     int MaxItems = 5) : IRequest<ResultResponse<IReadOnlyList<VideoEligibleItem>>>;
 
@@ -15,10 +15,10 @@ public class SelectVideoEligibleItemsHandler(
     INewsItemRepository newsItemRepository,
     IShortVideoRepository shortVideoRepository,
     ILogger<SelectVideoEligibleItemsHandler> logger)
-    : IRequestHandler<SelectVideoEligibleItemsCommand, ResultResponse<IReadOnlyList<VideoEligibleItem>>>
+    : IRequestHandler<SelectVideoEligibleItemsQuery, ResultResponse<IReadOnlyList<VideoEligibleItem>>>
 {
     public async ValueTask<ResultResponse<IReadOnlyList<VideoEligibleItem>>> Handle(
-        SelectVideoEligibleItemsCommand request,
+        SelectVideoEligibleItemsQuery request,
         CancellationToken cancellationToken)
     {
         logger.LogDebug("Selecting video-eligible items (min score: {MinScore}, max: {MaxItems})",
