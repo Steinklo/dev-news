@@ -9,7 +9,7 @@ namespace DevNews.Functions.VideoGeneration;
 
 public class Orchestrator
 {
-    private static readonly Platform[] TargetPlatforms = [Platform.YouTube, Platform.LinkedIn, Platform.Twitter];
+    private static readonly Platform[] TargetPlatforms = [Platform.YouTube, Platform.LinkedIn];
 
     private static TaskOptions CreateRetryOptions()
     {

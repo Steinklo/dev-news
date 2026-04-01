@@ -6,6 +6,5 @@ namespace DevNews.Domain.ShortVideo.Enums;
 public enum Platform
 {
     YouTube = 1,
-    LinkedIn = 2,
-    Twitter = 3
+    LinkedIn = 2
 }

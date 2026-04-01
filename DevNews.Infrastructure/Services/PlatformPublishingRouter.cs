@@ -9,7 +9,6 @@ namespace DevNews.Infrastructure.Services;
 public class PlatformPublishingRouter(
     YouTubePublishingService youTubeService,
     LinkedInPublishingService linkedInService,
-    TwitterPublishingService twitterService,
     ILogger<PlatformPublishingRouter> logger) : IPlatformPublishingService
 {
     public async Task<ResultResponse<PlatformPublishResult>> PublishAsync(
@@ -26,7 +25,6 @@ public class PlatformPublishingRouter(
         {
             Platform.YouTube => await youTubeService.PublishAsync(videoUrl, title, description, tags, ct),
             Platform.LinkedIn => await linkedInService.PublishAsync(videoUrl, title, description, tags, ct),
-            Platform.Twitter => await twitterService.PublishAsync(videoUrl, title, description, tags, ct),
             _ => ResultResponse<PlatformPublishResult>.Failure($"Unsupported platform: {platform}")
         };
     }

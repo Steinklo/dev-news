@@ -47,7 +47,6 @@ public class PlatformPublicationTests
     [Theory]
     [InlineData(Platform.YouTube)]
     [InlineData(Platform.LinkedIn)]
-    [InlineData(Platform.Twitter)]
     public void Create_AllPlatforms_AreValid(Platform platform)
     {
         var result = PlatformPublication.Create(

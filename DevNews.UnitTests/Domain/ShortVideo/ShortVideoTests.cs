@@ -147,9 +147,8 @@ public class ShortVideoTests
 
         video.AddPublication(Platform.YouTube, "yt123", "https://youtube.com/shorts/yt123");
         video.AddPublication(Platform.LinkedIn, "li123", "https://linkedin.com/feed/li123");
-        video.AddPublication(Platform.Twitter, "tw123", "https://x.com/i/status/tw123");
 
-        Assert.Equal(3, video.Publications.Count);
+        Assert.Equal(2, video.Publications.Count);
     }
 
     [Fact]
