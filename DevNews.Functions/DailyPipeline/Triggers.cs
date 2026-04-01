@@ -3,7 +3,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 
-namespace DevNews.Functions.VideoGeneration;
+namespace DevNews.Functions.DailyPipeline;
 
 public class Triggers
 {
@@ -15,38 +15,54 @@ public class Triggers
     }
 
     /// <summary>
-    /// HTTP trigger - manually start video generation
+    /// Timer trigger - runs daily at 06:00 UTC
     /// </summary>
-    [Function(nameof(StartVideoGeneration))]
-    public async Task<HttpResponseData> StartVideoGeneration(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/video-generation/start")] HttpRequestData req,
+    [Function(nameof(DailyPipelineTimer))]
+    public async Task DailyPipelineTimer(
+        [TimerTrigger("%DailyPipelineSchedule%")] TimerInfo timerInfo,
+        [DurableClient] DurableTaskClient client)
+    {
+        _logger.LogInformation("Daily pipeline timer triggered at {Time}", DateTime.UtcNow);
+
+        var instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
+            nameof(Orchestrator.DailyPipelineOrchestrator));
+
+        _logger.LogInformation("Started daily pipeline with instance ID: {InstanceId}", instanceId);
+    }
+
+    /// <summary>
+    /// HTTP trigger - manually start the daily pipeline
+    /// </summary>
+    [Function(nameof(StartDailyPipeline))]
+    public async Task<HttpResponseData> StartDailyPipeline(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/pipeline/start")] HttpRequestData req,
         [DurableClient] DurableTaskClient client,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Manual video generation triggered");
+        _logger.LogInformation("Manual daily pipeline triggered");
 
         var instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
-            nameof(Orchestrator.VideoGenerationOrchestrator));
+            nameof(Orchestrator.DailyPipelineOrchestrator));
 
-        _logger.LogInformation("Started video generation orchestration with instance ID: {InstanceId}", instanceId);
+        _logger.LogInformation("Started daily pipeline with instance ID: {InstanceId}", instanceId);
 
         var response = req.CreateResponse(System.Net.HttpStatusCode.Accepted);
         await response.WriteAsJsonAsync(new
         {
             instance_id = instanceId,
-            status_url = $"/api/v1/video-generation/status/{instanceId}",
-            message = "Video generation orchestration started"
+            status_url = $"/api/v1/pipeline/status/{instanceId}",
+            message = "Daily pipeline started"
         }, cancellationToken);
 
         return response;
     }
 
     /// <summary>
-    /// HTTP trigger - check status of video generation orchestration
+    /// HTTP trigger - check status of daily pipeline
     /// </summary>
-    [Function(nameof(GetVideoGenerationStatus))]
-    public async Task<HttpResponseData> GetVideoGenerationStatus(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/video-generation/status/{instanceId}")] HttpRequestData req,
+    [Function(nameof(GetDailyPipelineStatus))]
+    public async Task<HttpResponseData> GetDailyPipelineStatus(
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/pipeline/status/{instanceId}")] HttpRequestData req,
         [DurableClient] DurableTaskClient client,
         string instanceId,
         CancellationToken cancellationToken)
@@ -68,7 +84,7 @@ public class Triggers
             created_at = metadata.CreatedAt,
             last_updated_at = metadata.LastUpdatedAt,
             output = metadata.RuntimeStatus == OrchestrationRuntimeStatus.Completed
-                ? metadata.ReadOutputAs<VideoGenerationResult>()
+                ? metadata.ReadOutputAs<DailyPipelineResult>()
                 : null
         }, cancellationToken);
 

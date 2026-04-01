@@ -15,22 +15,6 @@ public class Triggers
     }
 
     /// <summary>
-    /// Timer trigger - runs daily at 06:00 UTC
-    /// </summary>
-    [Function(nameof(DailyCrawlTimer))]
-    public async Task DailyCrawlTimer(
-        [TimerTrigger("0 0 6 * * *")] TimerInfo timerInfo,
-        [DurableClient] DurableTaskClient client)
-    {
-        _logger.LogInformation("Daily crawl timer triggered at {Time}", DateTime.UtcNow);
-
-        var instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
-            nameof(Orchestrator.NightlyCrawlOrchestrator));
-
-        _logger.LogInformation("Started daily crawl orchestration with instance ID: {InstanceId}", instanceId);
-    }
-
-    /// <summary>
     /// HTTP trigger - manually start the crawl
     /// </summary>
     [Function(nameof(StartNightlyCrawl))]
