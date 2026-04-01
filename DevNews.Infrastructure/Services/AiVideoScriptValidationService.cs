@@ -60,11 +60,7 @@ public class AiVideoScriptValidationService(IAiService aiService) : IVideoScript
     {
         try
         {
-            var cleaned = jsonResponse.Trim();
-            if (cleaned.StartsWith("```json")) cleaned = cleaned[7..];
-            if (cleaned.StartsWith("```")) cleaned = cleaned[3..];
-            if (cleaned.EndsWith("```")) cleaned = cleaned[..^3];
-            cleaned = cleaned.Trim();
+            var cleaned = JsonResponseHelper.CleanJsonResponse(jsonResponse);
 
             using var doc = JsonDocument.Parse(cleaned);
             var root = doc.RootElement;

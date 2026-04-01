@@ -18,13 +18,13 @@ public class EntityTests
     public void Constructor_SetsIdAndCreatedTimestamp()
     {
         var id = Guid.NewGuid();
-        var beforeCreation = DateTime.UtcNow;
+        var beforeCreation = DateTimeOffset.UtcNow;
 
         var entity = new TestEntity(id, "Test");
 
         Assert.Equal(id, entity.Id);
-        Assert.True(entity.Created >= beforeCreation);
-        Assert.True(entity.Created <= DateTime.UtcNow);
+        Assert.True(entity.CreatedAt >= beforeCreation);
+        Assert.True(entity.CreatedAt <= DateTimeOffset.UtcNow);
     }
 
     [Fact]

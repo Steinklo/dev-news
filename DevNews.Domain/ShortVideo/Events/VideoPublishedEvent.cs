@@ -9,5 +9,4 @@ public class VideoPublishedEvent(
 {
     public ShortVideo ShortVideo { get; } = shortVideo;
     public Platform Platform { get; } = platform;
-    public DateTime CreatedAt { get; } = DateTime.UtcNow;
 }

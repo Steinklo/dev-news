@@ -58,13 +58,13 @@ public class NewsUpdatedEventTests
     [Fact]
     public void Constructor_SetsCreatedAtToNow()
     {
-        var before = DateTime.UtcNow;
+        var before = DateTimeOffset.UtcNow;
         var newsItem = CreateValidNewsItem();
 
         var evt = new NewsUpdatedEvent(newsItem);
 
         Assert.True(evt.CreatedAt >= before);
-        Assert.True(evt.CreatedAt <= DateTime.UtcNow);
+        Assert.True(evt.CreatedAt <= DateTimeOffset.UtcNow);
     }
 
     [Fact]
@@ -74,6 +74,6 @@ public class NewsUpdatedEventTests
 
         var evt = new NewsUpdatedEvent(newsItem);
 
-        Assert.True(Math.Abs((evt.Created - DateTime.UtcNow).TotalSeconds) < 1);
+        Assert.True(Math.Abs((evt.CreatedAt - DateTimeOffset.UtcNow).TotalSeconds) < 1);
     }
 }

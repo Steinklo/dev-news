@@ -34,7 +34,6 @@ public class ShortVideo : AggregateRoot<Guid>
     public IReadOnlyCollection<PlatformPublication> Publications => _publications.AsReadOnly();
 
     // Timestamps
-    public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? UpdatedAt { get; private set; }
 
     private ShortVideo(
@@ -52,7 +51,6 @@ public class ShortVideo : AggregateRoot<Guid>
         VideoUrl = videoUrl;
         ThumbnailUrl = thumbnailUrl;
         Status = status;
-        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     /// <summary>

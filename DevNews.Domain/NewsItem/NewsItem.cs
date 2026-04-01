@@ -40,7 +40,6 @@ public class NewsItem : AggregateRoot<Guid>
 
     // Timestamps
     public DateTimeOffset? PublishedAt { get; private set; }  // When the original article was published
-    public DateTimeOffset CreatedAt { get; private set; }      // When we stored it
     public DateTimeOffset? UpdatedAt { get; private set; }     // When we last modified it
 
     private NewsItem(
@@ -67,7 +66,6 @@ public class NewsItem : AggregateRoot<Guid>
         if (tags != null)
             _tags.AddRange(tags);
         PublishedAt = publishedAt;
-        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     /// <summary>

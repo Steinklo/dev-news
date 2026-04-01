@@ -11,5 +11,5 @@ public class DomainEvent : INotification
 
     public Guid Id { get; init; } = Guid.CreateVersion7();
     public Guid AggregateId { get; protected set; }
-    public DateTime Created { get; init; } = DateTime.UtcNow;
+    public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 }

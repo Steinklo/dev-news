@@ -1,6 +1,7 @@
 using DevNews.Application.Common.Models;
 using DevNews.Application.ShortVideo.Dtos;
 using DevNews.Domain.ShortVideo.Enums;
+using DevNews.Functions.Common;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -10,14 +11,6 @@ namespace DevNews.Functions.VideoGeneration;
 public class Orchestrator
 {
     private static readonly Platform[] TargetPlatforms = [Platform.YouTube, Platform.LinkedIn];
-
-    private static TaskOptions CreateRetryOptions()
-    {
-        return TaskOptions.FromRetryPolicy(new RetryPolicy(
-            maxNumberOfAttempts: 3,
-            firstRetryInterval: TimeSpan.FromSeconds(5),
-            backoffCoefficient: 2.0));
-    }
 
     [Function(nameof(VideoGenerationOrchestrator))]
     public async Task<VideoGenerationResult> VideoGenerationOrchestrator(
@@ -40,7 +33,7 @@ public class Orchestrator
             eligibleItems = await context.CallActivityAsync<List<VideoEligibleItem>>(
                 nameof(Activities.SelectEligibleItemsActivity),
                 null,
-                CreateRetryOptions());
+                OrchestrationDefaults.RetryOptions);
 
             logger.LogInformation("Found {Count} eligible items for video generation", eligibleItems.Count);
         }
@@ -63,7 +56,7 @@ public class Orchestrator
             var script = await context.CallActivityAsync<string?>(
                 nameof(Activities.GenerateScriptActivity),
                 new ScriptGenerationInput(item.NewsItemId, item.Title, item.Summary, item.Category, item.Tags),
-                CreateRetryOptions());
+                OrchestrationDefaults.RetryOptions);
 
             await context.CreateTimer(context.CurrentUtcDateTime.AddSeconds(2), CancellationToken.None);
 
@@ -77,7 +70,7 @@ public class Orchestrator
             var validationResult = await context.CallActivityAsync<ScriptValidationResult?>(
                 nameof(Activities.ValidateScriptActivity),
                 new ScriptValidationInput(script, item.Summary),
-                CreateRetryOptions());
+                OrchestrationDefaults.RetryOptions);
 
             await context.CreateTimer(context.CurrentUtcDateTime.AddSeconds(2), CancellationToken.None);
 
@@ -93,7 +86,7 @@ public class Orchestrator
             var videoResult = await context.CallActivityAsync<GeneratedVideoOutput?>(
                 nameof(Activities.GenerateVideoActivity),
                 new VideoGenerationInput(item.NewsItemId, script, item.Title),
-                CreateRetryOptions());
+                OrchestrationDefaults.RetryOptions);
 
             if (videoResult == null)
             {
@@ -113,7 +106,7 @@ public class Orchestrator
                         item.Summary,
                         item.Tags.ToArray(),
                         platform),
-                    CreateRetryOptions()));
+                    OrchestrationDefaults.RetryOptions));
 
             var publishResults = await Task.WhenAll(publishTasks);
             var successfulPublications = publishResults
@@ -132,7 +125,7 @@ public class Orchestrator
                     videoResult.DurationSeconds,
                     videoResult.VideoUrl,
                     successfulPublications),
-                CreateRetryOptions());
+                OrchestrationDefaults.RetryOptions);
         }
 
         var duration = context.CurrentUtcDateTime - startTime;

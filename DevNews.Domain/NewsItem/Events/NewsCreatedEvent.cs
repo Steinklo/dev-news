@@ -6,5 +6,4 @@ public class NewsCreatedEvent(
     NewsItem newsItem) : DomainEvent(newsItem.Id)
 {
     public NewsItem NewsItem { get; } = newsItem;
-    public DateTime CreatedAt { get; } = DateTime.UtcNow;
 }
