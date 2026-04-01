@@ -18,12 +18,23 @@ public class Orchestrator
         logger.LogInformation("Starting daily pipeline orchestration");
 
         // Step 1: Run nightly crawl
-        var crawlResult = await context.CallSubOrchestratorAsync<NightlyCrawlResult>(
-            nameof(NightlyCrawl.Orchestrator.NightlyCrawlOrchestrator), (object?)null);
+        NightlyCrawlResult crawlResult;
+        try
+        {
+            crawlResult = await context.CallSubOrchestratorAsync<NightlyCrawlResult>(
+                nameof(NightlyCrawl.Orchestrator.NightlyCrawlOrchestrator), (object?)null);
 
-        logger.LogInformation(
-            "Crawl completed. Persisted: {Persisted}, Failed: {Failed}",
-            crawlResult.Persisted, crawlResult.Failed);
+            logger.LogInformation(
+                "Crawl completed. Persisted: {Persisted}, Failed: {Failed}",
+                crawlResult.Persisted, crawlResult.Failed);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Crawl orchestration failed");
+            return new DailyPipelineResult(
+                new NightlyCrawlResult(0, 0, 0, 0, 0, 1, TimeSpan.Zero), null,
+                context.CurrentUtcDateTime - startTime);
+        }
 
         // Step 2: Run video generation if crawl produced new items
         VideoGenerationResult? videoResult = null;

@@ -83,5 +83,3 @@ jobs:
           package: './publish'
           scm-do-build-during-deployment: true
           enable-oryx-build: true
-
-

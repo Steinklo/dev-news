@@ -1,104 +1,82 @@
 # DevNews Backend
 
-Serverless backend API for DevNews — an AI developer news aggregator that crawls, deduplicates, and summarizes AI/ML news using Claude.
+Serverless C# backend for an AI-powered developer news aggregator. Automatically crawls, curates, and generates short-form video content from developer news — published to YouTube and LinkedIn.
+
+Built with Azure Functions V4 (.NET 9), Cosmos DB, Anthropic Claude AI, and Creatomate.
+
+## Daily Pipeline
+
+A single orchestrator runs the full daily pipeline — crawling news, then generating videos from the highest-relevance items.
+
+```mermaid
+flowchart LR
+    Timer["Timer (06:00 UTC)"] --> DP[DailyPipelineOrchestrator]
+    DP --> Crawl[NightlyCrawlOrchestrator]
+    Crawl --> Video[VideoGenerationOrchestrator]
+```
+
+### News Crawl
+
+```mermaid
+flowchart TD
+    A[Discover articles via RSS] --> B[AI curation — summary, category, relevance score]
+    B --> C{Relevance >= 60?}
+    C -- No --> D[Filtered out]
+    C -- Yes --> E[AI deduplication check]
+    E --> F{Duplicate?}
+    F -- Yes --> G[Skipped]
+    F -- No --> H[Persist to Cosmos DB]
+```
+
+### Video Generation
+
+Only runs if the crawl persisted new items. Selects the top 3-5 items with relevance score 85+.
+
+```mermaid
+flowchart TD
+    A[Select eligible items — score 85+] --> B[Generate script — Claude AI]
+    B --> C[Validate script — Claude AI]
+    C --> D{Valid?}
+    D -- No --> E[Skipped]
+    D -- Yes --> F[Render video — Creatomate]
+    F --> G[Upload to Azure Blob Storage]
+    G --> H[Publish to YouTube + LinkedIn]
+    H --> I[Persist ShortVideo to Cosmos DB]
+```
 
 ## Architecture
 
-Clean Architecture with Domain-Driven Design (DDD), running as Azure Functions (.NET 9 isolated worker).
+Clean Architecture with Domain-Driven Design (DDD).
 
 ```
-┌──────────────────────┐
-│  DevNews.Functions   │  Azure Functions triggers + HTTP endpoints
-├──────────────────────┤
-│  DevNews.Application │  Commands, queries, validators (Mediator + FluentValidation)
-├──────────────────────┤
-│  DevNews.Domain      │  Entities, value objects, domain events
-├──────────────────────┤
-│  DevNews.Infrastructure │  Cosmos DB, Anthropic AI, RSS crawling
-└──────────────────────┘
+DevNews.Domain/           # Aggregates, value objects, enums, domain events
+DevNews.Application/      # CQRS commands & queries, service interfaces
+DevNews.Infrastructure/   # Cosmos DB, Claude AI, Creatomate, YouTube, LinkedIn
+DevNews.Functions/        # Azure Functions — triggers, orchestrators, activities
+DevNews.UnitTests/        # xUnit tests
 ```
 
-### Nightly Crawl Pipeline (Durable Functions)
-
-A timer-triggered orchestrator runs nightly to:
-
-1. **Discover** articles from RSS feeds via `AiCrawlService`
-2. **Deduplicate** against existing items via `AIDuplicationService`
-3. **Curate** — AI generates TL;DR summaries, categories, and relevance scores via `AiCurationService` (Anthropic Claude)
-4. **Persist** to Cosmos DB
-
-### REST API
-
-| Endpoint | Description |
-|---|---|
-| `GET /api/v1/news/categories` | List all categories |
-| `GET /api/v1/news/category/{category}?year_month=YYYY-MM` | News items by category and month |
-
-## Tech Stack
-
-- **.NET 9** (isolated worker, Azure Functions V4)
-- **Azure Cosmos DB** (SQL API) — document storage
-- **Azure Key Vault** — secrets management
-- **Anthropic Claude** — AI-powered article curation and deduplication
-- **Mediator** (source-generated) — CQRS command/query handling
-- **FluentValidation** — input validation
-- **Application Insights** — telemetry and logging
-- **Durable Functions** — orchestrated nightly crawl pipeline
-- **xUnit** — unit testing
-
-## Prerequisites
-
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
-- [Azure Functions Core Tools v4](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local)
-- Azure Cosmos DB (or emulator)
-- Anthropic API key
-
-## Getting Started
-
-```bash
-# Restore dependencies
-dotnet restore DevNews.sln
-
-# Build
-dotnet build DevNews.sln --configuration Release
-
-# Run tests
-dotnet test DevNews.UnitTests/DevNews.UnitTests.csproj
-
-# Run locally
-cd DevNews.Functions
-func start
+```mermaid
+flowchart TB
+    Functions --> Application
+    Functions --> Infrastructure
+    Infrastructure --> Application
+    Application --> Domain
+    Infrastructure --> Domain
 ```
 
-Configure `local.settings.json` in `DevNews.Functions/` with Cosmos DB and Anthropic API credentials.
+## API Endpoints
 
-## Project Structure
-
-```
-DevNews.sln
-├── DevNews.Domain/              # Domain layer (no external dependencies)
-│   ├── Common/                  # AggregateRoot, Entity, ValueObject, DomainEvent
-│   └── NewsItem/                # NewsItem aggregate, enums, value objects, events
-├── DevNews.Application/         # Application layer
-│   ├── Common/                  # Behaviours (logging, validation, perf), repositories, services
-│   └── NewsItem/                # Commands (discover, dedupe, curate, persist), queries, DTOs
-├── DevNews.Infrastructure/      # Infrastructure layer
-│   ├── Persistence/             # Cosmos DB document models
-│   ├── Repositories/            # NewsItemCosmosRepository
-│   └── Services/                # AI services (Anthropic), crawl service, curation, deduplication
-├── DevNews.Functions/           # Azure Functions entry point
-│   ├── NewsApi/                 # HTTP endpoints
-│   └── NightlyCrawl/           # Durable Functions orchestrator, activities, triggers
-├── DevNews.UnitTests/           # xUnit tests
-└── .github/workflows/
-    ├── deploy.yml               # Build → deploy dev → deploy prod (OIDC auth)
-    └── pr-build.yml             # PR validation (build + test)
-```
-
-## CI/CD
-
-- **PR builds**: Restore, build, test, publish artifact
-- **Deploy** (on push to `main`): Build → deploy to dev → deploy to prod (Azure Functions, OIDC federated credentials)
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/v1/news/categories` | List all categories |
+| `GET` | `/api/v1/news/category/{category}?year_month=YYYY-MM` | News by category |
+| `POST` | `/api/v1/pipeline/start` | Trigger daily pipeline |
+| `GET` | `/api/v1/pipeline/status/{instanceId}` | Pipeline status |
+| `POST` | `/api/v1/crawl/start` | Trigger crawl only |
+| `GET` | `/api/v1/crawl/status/{instanceId}` | Crawl status |
+| `POST` | `/api/v1/video-generation/start` | Trigger video generation only |
+| `GET` | `/api/v1/video-generation/status/{instanceId}` | Video generation status |
 
 ## Categories
 
@@ -109,3 +87,49 @@ DevNews.sln
 5. AI Safety & Security
 6. Infrastructure & Cloud
 7. Open Source & Community
+
+## Getting Started
+
+```bash
+dotnet restore DevNews.sln
+dotnet build DevNews.sln --configuration Release
+dotnet test DevNews.UnitTests/DevNews.UnitTests.csproj
+cd DevNews.Functions && func start
+```
+
+### Configuration
+
+Set in `local.settings.json` (local) or Azure App Settings (deployed):
+
+| Key | Description |
+|-----|-------------|
+| `CosmosDbEndpoint` | Cosmos DB endpoint URL |
+| `CosmosDbKey` | Cosmos DB access key |
+| `AnthropicApiKey` | Claude AI API key |
+| `AzureStorageConnectionString` | Azure Blob Storage connection string |
+| `CreatomateApiKey` | Creatomate video rendering API key |
+| `VideoGeneration:CreatomateTemplateId` | Creatomate video template ID |
+| `YouTubeClientId` | YouTube OAuth client ID |
+| `YouTubeClientSecret` | YouTube OAuth client secret |
+| `YouTubeRefreshToken` | YouTube OAuth refresh token |
+| `LinkedInAccessToken` | LinkedIn API access token |
+| `VideoGeneration:LinkedInOrganizationId` | LinkedIn company page ID |
+| `DailyPipelineSchedule` | Cron expression for daily run (e.g. `0 0 6 * * *`) |
+
+## CI/CD
+
+- **PR builds**: Build + test validation
+- **Push to main**: Build, test, deploy to dev (automatic)
+- **Prod deploy**: Manual trigger via GitHub Actions
+
+## Tech Stack
+
+- **.NET 9** — Azure Functions V4 isolated worker
+- **Cosmos DB** — Document storage with partition key strategy
+- **Anthropic Claude** — Article curation, script generation, validation
+- **Creatomate** — Cloud video rendering with motion graphics
+- **Azure Blob Storage** — Video and thumbnail assets
+- **Durable Functions** — Orchestration with retry policies and fan-out
+- **Mediator** — Source-generated CQRS
+- **FluentValidation** — Input validation
+- **xUnit** — Unit testing
