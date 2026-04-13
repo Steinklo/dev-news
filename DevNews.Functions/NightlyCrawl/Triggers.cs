@@ -15,22 +15,6 @@ public class Triggers
     }
 
     /// <summary>
-    /// Timer trigger - runs daily at 06:00 UTC
-    /// </summary>
-    [Function(nameof(DailyCrawlTimer))]
-    public async Task DailyCrawlTimer(
-        [TimerTrigger("0 0 6 * * *")] TimerInfo timerInfo,
-        [DurableClient] DurableTaskClient client)
-    {
-        _logger.LogInformation("Daily crawl timer triggered at {Time}", DateTime.UtcNow);
-
-        var instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
-            nameof(Orchestrator.NightlyCrawlOrchestrator));
-
-        _logger.LogInformation("Started daily crawl orchestration with instance ID: {InstanceId}", instanceId);
-    }
-
-    /// <summary>
     /// HTTP trigger - manually start the crawl
     /// </summary>
     [Function(nameof(StartNightlyCrawl))]
@@ -67,27 +51,7 @@ public class Triggers
         string instanceId,
         CancellationToken cancellationToken)
     {
-        var metadata = await client.GetInstanceAsync(instanceId, getInputsAndOutputs: true);
-
-            if (metadata == null)
-        {
-            var notFound = req.CreateResponse(System.Net.HttpStatusCode.NotFound);
-                await notFound.WriteAsJsonAsync(new { error = "Instance not found" }, cancellationToken);
-            return notFound;
-        }
-
-        var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-        await response.WriteAsJsonAsync(new
-        {
-            instance_id = metadata.InstanceId,
-            status = metadata.RuntimeStatus.ToString(),
-            created_at = metadata.CreatedAt,
-            last_updated_at = metadata.LastUpdatedAt,
-            output = metadata.RuntimeStatus == OrchestrationRuntimeStatus.Completed
-                ? metadata.ReadOutputAs<NightlyCrawlResult>()
-                : null
-        }, cancellationToken);
-
-        return response;
+        return await Common.OrchestrationStatusHelper.GetStatusResponse<NightlyCrawlResult>(
+            req, client, instanceId, cancellationToken);
     }
 }

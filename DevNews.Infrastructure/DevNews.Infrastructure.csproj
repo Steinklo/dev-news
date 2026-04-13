@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
@@ -12,14 +12,19 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.56.0" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.5" />
-      <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.5" />
-      <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.5" />
-      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+      <InternalsVisibleTo Include="DevNews.UnitTests" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+      <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.5" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
+      <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.5" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
       <PackageReference Include="SmartReader" Version="0.11.0" />
-      <PackageReference Include="System.ServiceModel.Syndication" Version="9.0.4" />
-      <PackageReference Include="Anthropic" Version="12.0.1" />
+      <PackageReference Include="System.ServiceModel.Syndication" Version="10.0.5" />
+      <PackageReference Include="Anthropic" Version="12.13.0" />
     </ItemGroup>
 
 </Project>

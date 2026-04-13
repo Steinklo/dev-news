@@ -225,15 +225,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
     {
         try
         {
-            // Clean up the response (remove markdown code blocks if present)
-            var cleaned = jsonResponse.Trim();
-            if (cleaned.StartsWith("```json"))
-                cleaned = cleaned.Substring(7);
-            if (cleaned.StartsWith("```"))
-                cleaned = cleaned.Substring(3);
-            if (cleaned.EndsWith("```"))
-                cleaned = cleaned.Substring(0, cleaned.Length - 3);
-            cleaned = cleaned.Trim();
+            var cleaned = JsonResponseHelper.CleanJsonResponse(jsonResponse);
 
             using var doc = JsonDocument.Parse(cleaned);
             var root = doc.RootElement;

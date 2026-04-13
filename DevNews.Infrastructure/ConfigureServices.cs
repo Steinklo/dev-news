@@ -1,3 +1,4 @@
+using Azure.Storage.Blobs;
 using DevNews.Application.Common.Repositories;
 using DevNews.Application.Common.Services;
 using DevNews.Infrastructure.Repositories;
@@ -12,6 +13,7 @@ public static class ConfigureServices
 {
     private const string DatabaseId = "dev-news-db";
     private const string ContainerId = "news-items";
+    private const string ShortVideoContainerId = "short-videos";
 
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
@@ -30,6 +32,17 @@ public static class ConfigureServices
             return new NewsItemCosmosRepository(cosmosClient, DatabaseId, ContainerId);
         });
 
+        services.AddScoped<IShortVideoRepository>(sp =>
+        {
+            var cosmosClient = sp.GetRequiredService<CosmosClient>();
+            return new ShortVideoCosmosRepository(cosmosClient, DatabaseId, ShortVideoContainerId);
+        });
+
+        // Azure Blob Storage
+        services.AddSingleton(_ =>
+            new BlobServiceClient(configuration["AzureStorageConnectionString"]));
+        services.AddScoped<IVideoStorageService, AzureBlobVideoStorageService>();
+
         // Crawl service
         services.AddHttpClient<ICrawlService, AiCrawlService>();
 
@@ -39,6 +52,16 @@ public static class ConfigureServices
         // AI-powered services
         services.AddScoped<ICurationService, AiCurationService>();
         services.AddScoped<IDuplicationService, AiDuplicationService>();
+
+        // Video generation services
+        services.AddScoped<IVideoScriptService, AiVideoScriptService>();
+        services.AddScoped<IVideoScriptValidationService, AiVideoScriptValidationService>();
+        services.AddHttpClient<IVideoGenerationService, CreatomateVideoGenerationService>();
+
+        // Platform publishing services
+        services.AddHttpClient<YouTubePublishingService>();
+        services.AddHttpClient<LinkedInPublishingService>();
+        services.AddScoped<IPlatformPublishingService, PlatformPublishingRouter>();
 
         return services;
     }

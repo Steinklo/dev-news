@@ -1,6 +1,6 @@
 # DevNews Backend
 
-Serverless C# backend for an AI developer news aggregator. Azure Functions V4 (.NET 9 isolated worker) with Cosmos DB and Anthropic Claude AI.
+Serverless C# backend for an AI developer news aggregator and short video generator. Azure Functions V4 (.NET 10 isolated worker) with Cosmos DB and Anthropic Claude AI.
 
 ## Commands
 
@@ -14,9 +14,9 @@ cd DevNews.Functions && func start                            # Run locally
 ## Project Structure
 
 ```
-DevNews.Domain/           # Entities, value objects, enums, domain events (zero dependencies)
+DevNews.Domain/           # Entities, value objects, enums, domain events (depends only on Mediator.Abstractions)
 DevNews.Application/      # Commands, queries, validators, service interfaces (Mediator CQRS)
-DevNews.Infrastructure/   # Cosmos DB repos, Anthropic AI services, RSS crawling
+DevNews.Infrastructure/   # Cosmos DB repos, Anthropic AI services, RSS crawling, video generation
 DevNews.Functions/        # Azure Functions entry point (HTTP endpoints + Durable Functions)
 DevNews.UnitTests/        # xUnit tests
 ```
@@ -29,12 +29,13 @@ DevNews.UnitTests/        # xUnit tests
 - **CQRS via Mediator**: Source-generated Mediator for commands and queries (not MediatR)
 - **Pipeline behaviours**: Logging, validation (FluentValidation), performance tracking, exception handling
 - **Value objects**: NewsTitle, NewsUrl, NewsSummary, NewsCategory, RelevanceScore — enforce invariants at domain level
-- **Durable Functions orchestrator**: Nightly crawl pipeline (discover → deduplicate → curate → persist)
+- **Durable Functions orchestrators**: Nightly crawl pipeline (discover → curate → filter low relevance → deduplicate → persist), short video generation pipeline
 
 ## API Endpoints
 
 - `GET /api/v1/news/categories` → `CategoriesResponse`
 - `GET /api/v1/news/category/{category}?year_month=YYYY-MM` → `NewsByCategoryResponse`
+- `GET /api/v1/news/{id}` → single `NewsItem` by GUID
 
 ## Infrastructure Services
 
@@ -43,6 +44,14 @@ DevNews.UnitTests/        # xUnit tests
 - `AiCurationService` — AI-generated summaries, categories, relevance scores
 - `AIDuplicationService` — AI-powered deduplication
 - `NewsItemCosmosRepository` — Cosmos DB persistence
+- `AiVideoScriptService` — AI-generated video scripts
+- `AiVideoScriptValidationService` — script validation
+- `CreatomateVideoGenerationService` — programmatic video rendering via Creatomate (JSON-source with DALL-E background, Azure TTS voiceover)
+- `AzureBlobVideoStorageService` — video storage in Azure Blob
+- `YouTubePublishingService` — publish to YouTube
+- `LinkedInPublishingService` — publish to LinkedIn
+- `PlatformPublishingRouter` — routes publishing to correct platform
+- `ShortVideoCosmosRepository` — Cosmos DB persistence for videos
 
 ## Conventions
 
@@ -50,4 +59,4 @@ DevNews.UnitTests/        # xUnit tests
 - Nullable reference types enabled throughout
 - Categories are a fixed enum (7 values, AI-focused, ordered by priority): AiModelsAndApis, AiDeveloperTools, AgentsAndFrameworks, AiEngineering, AiSafetyAndSecurity, InfrastructureAndCloud, OpenSourceAndCommunity
 - Severity levels: Critical, High, Medium, Low (security items only)
-- CI: GitHub Actions with OIDC auth, deploy dev → prod on push to main
+- CI: GitHub Actions with OIDC auth, deploy dev on push to main, prod via manual workflow_dispatch

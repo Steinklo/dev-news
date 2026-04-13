@@ -61,14 +61,14 @@ public class NewsCreatedEventTests
     [Fact]
     public void Constructor_SetsCreatedAtToNow()
     {
-        var before = DateTime.UtcNow;
+        var before = DateTimeOffset.UtcNow;
         var newsItem = CreateValidNewsItem();
         newsItem.ClearDomainEvents();
 
         var evt = new NewsCreatedEvent(newsItem);
 
         Assert.True(evt.CreatedAt >= before);
-        Assert.True(evt.CreatedAt <= DateTime.UtcNow);
+        Assert.True(evt.CreatedAt <= DateTimeOffset.UtcNow);
     }
 
     [Fact]

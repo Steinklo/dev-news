@@ -1,0 +1,42 @@
+name: Deploy Dev
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+      - '.gitignore'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: build
+    environment: development
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: function-app
+          path: ./publish
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_DEV }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Functions (Dev)
+        uses: Azure/functions-action@v1
+        with:
+          app-name: 'func-devnews-api-dev'
+          package: './publish'

@@ -38,7 +38,7 @@ public class AnthropicAiService : IAiService
             throw new InvalidOperationException("Anthropic API key is not configured");
         }
 
-        _client = new AnthropicClient { APIKey = apiKey };
+        _client = new AnthropicClient { ApiKey = apiKey };
     }
 
     public async Task<ResultResponse<string>> GenerateAsync(string prompt, CancellationToken ct = default)

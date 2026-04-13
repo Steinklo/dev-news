@@ -1,5 +1,6 @@
 using DevNews.Application.Common.Services;
 using DevNews.Application.Common.Models;
+using DevNews.Functions.Common;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -8,13 +9,6 @@ namespace DevNews.Functions.NightlyCrawl;
 
 public class Orchestrator
 {
-    private static TaskOptions CreateRetryOptions()
-    {
-        return TaskOptions.FromRetryPolicy(new RetryPolicy(
-            maxNumberOfAttempts: 3,
-            firstRetryInterval: TimeSpan.FromSeconds(5),
-            backoffCoefficient: 2.0));
-    }
 
     [Function(nameof(NightlyCrawlOrchestrator))]
     public async Task<NightlyCrawlResult> NightlyCrawlOrchestrator(
@@ -39,7 +33,7 @@ public class Orchestrator
             crawledArticles = await context.CallActivityAsync<List<CrawledArticle>>(
                 nameof(Activities.DiscoverArticlesActivity),
                 null,
-                CreateRetryOptions());
+                OrchestrationDefaults.RetryOptions);
 
             discovered = crawledArticles.Count;
             logger.LogInformation("Discovered {Count} articles", discovered);
@@ -63,7 +57,7 @@ public class Orchestrator
             var result = await context.CallActivityAsync<CleanedArticle?>(
                 nameof(Activities.CurateArticleActivity),
                 article,
-                CreateRetryOptions());
+                OrchestrationDefaults.RetryOptions);
             curationResults.Add(result);
 
             // Rate limit: 50 requests/min = 1.2s between calls, use 2s for safety
@@ -101,7 +95,7 @@ public class Orchestrator
             var isDuplicate = await context.CallActivityAsync<bool>(
                 nameof(Activities.CheckDuplicationActivity),
                 article,
-                CreateRetryOptions());
+                OrchestrationDefaults.RetryOptions);
             duplicationResults.Add((article, isDuplicate));
 
             // Rate limit: 50 requests/min = 1.2s between calls, use 2s for safety
@@ -123,7 +117,7 @@ public class Orchestrator
             context.CallActivityAsync<Guid?>(
                 nameof(Activities.PersistNewsItemActivity),
                 article,
-                CreateRetryOptions()));
+                OrchestrationDefaults.RetryOptions));
 
         var persistResults = await Task.WhenAll(persistTasks);
 
