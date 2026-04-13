@@ -48,14 +48,6 @@ flowchart TD
 
 Clean Architecture with Domain-Driven Design (DDD).
 
-```
-DevNews.Domain/           # Aggregates, value objects, enums, domain events
-DevNews.Application/      # CQRS commands & queries, service interfaces
-DevNews.Infrastructure/   # Cosmos DB, Claude AI, Creatomate, YouTube, LinkedIn
-DevNews.Functions/        # Azure Functions — triggers, orchestrators, activities
-DevNews.UnitTests/        # xUnit tests
-```
-
 ```mermaid
 flowchart TB
     Functions --> Application
