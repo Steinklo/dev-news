@@ -2,7 +2,7 @@
 
 Serverless C# backend for an AI-powered developer news aggregator. Automatically crawls, curates, and generates short-form video content from developer news — published to YouTube and LinkedIn.
 
-Built with Azure Functions V4 (.NET 9), Cosmos DB, Anthropic Claude AI, and Creatomate.
+Built with Azure Functions V4 (.NET 10), Cosmos DB, Anthropic Claude AI, and Creatomate.
 
 ## Daily Pipeline
 
@@ -101,7 +101,7 @@ Set in `local.settings.json` (local) or Azure App Settings (deployed):
 | `AnthropicApiKey` | Claude AI API key |
 | `AzureStorageConnectionString` | Azure Blob Storage connection string |
 | `CreatomateApiKey` | Creatomate video rendering API key |
-| `VideoGeneration:CreatomateTemplateId` | Creatomate video template ID |
+| `VideoGeneration:TtsVoiceName` | Azure TTS voice name (default: `en-US-AndrewMultilingualNeural`) |
 | `YouTubeClientId` | YouTube OAuth client ID |
 | `YouTubeClientSecret` | YouTube OAuth client secret |
 | `YouTubeRefreshToken` | YouTube OAuth refresh token |
@@ -117,10 +117,10 @@ Set in `local.settings.json` (local) or Azure App Settings (deployed):
 
 ## Tech Stack
 
-- **.NET 9** — Azure Functions V4 isolated worker
+- **.NET 10** — Azure Functions V4 isolated worker
 - **Cosmos DB** — Document storage with partition key strategy
 - **Anthropic Claude** — Article curation, script generation, validation
-- **Creatomate** — Cloud video rendering with motion graphics
+- **Creatomate** — Programmatic video rendering with DALL-E backgrounds and Azure TTS voiceover
 - **Azure Blob Storage** — Video and thumbnail assets
 - **Durable Functions** — Orchestration with retry policies and fan-out
 - **Mediator** — Source-generated CQRS

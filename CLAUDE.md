@@ -1,6 +1,6 @@
 # DevNews Backend
 
-Serverless C# backend for an AI developer news aggregator and short video generator. Azure Functions V4 (.NET 9 isolated worker) with Cosmos DB and Anthropic Claude AI.
+Serverless C# backend for an AI developer news aggregator and short video generator. Azure Functions V4 (.NET 10 isolated worker) with Cosmos DB and Anthropic Claude AI.
 
 ## Commands
 
@@ -46,7 +46,7 @@ DevNews.UnitTests/        # xUnit tests
 - `NewsItemCosmosRepository` — Cosmos DB persistence
 - `AiVideoScriptService` — AI-generated video scripts
 - `AiVideoScriptValidationService` — script validation
-- `CreatomateVideoGenerationService` — video rendering via Creatomate
+- `CreatomateVideoGenerationService` — programmatic video rendering via Creatomate (JSON-source with DALL-E background, Azure TTS voiceover)
 - `AzureBlobVideoStorageService` — video storage in Azure Blob
 - `YouTubePublishingService` — publish to YouTube
 - `LinkedInPublishingService` — publish to LinkedIn
