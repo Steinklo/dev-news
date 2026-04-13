@@ -8,7 +8,7 @@ on:
         value: function-app
 
 env:
-  DOTNET_VERSION: '9.0.x'
+  DOTNET_VERSION: '10.0.x'
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'DevNews.Functions'
 
 jobs:
