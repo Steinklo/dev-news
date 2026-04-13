@@ -20,7 +20,7 @@ flowchart LR
 ```mermaid
 flowchart TD
     A[Discover articles via RSS] --> B[AI curation — summary, category, relevance score]
-    B --> C{Relevance >= 60?}
+    B --> C{Relevance >= 50?}
     C -- No --> D[Filtered out]
     C -- Yes --> E[AI deduplication check]
     E --> F{Duplicate?}
@@ -30,7 +30,7 @@ flowchart TD
 
 ### Video Generation
 
-Only runs if the crawl persisted new items. Selects the top 3-5 items with relevance score 85+.
+Only runs if the crawl persisted new items. Selects up to 5 items with relevance score 85+.
 
 ```mermaid
 flowchart TD
@@ -70,7 +70,8 @@ flowchart TB
 | Method | Route | Description |
 |--------|-------|-------------|
 | `GET` | `/api/v1/news/categories` | List all categories |
-| `GET` | `/api/v1/news/category/{category}?year_month=YYYY-MM` | News by category |
+| `GET` | `/api/v1/news/{id}` | Single news item by ID |
+| `GET` | `/api/v1/news/category/{category}?year_month=YYYY-MM&limit=N` | News by category (limit default 50, max 100) |
 | `POST` | `/api/v1/pipeline/start` | Trigger daily pipeline |
 | `GET` | `/api/v1/pipeline/status/{instanceId}` | Pipeline status |
 | `POST` | `/api/v1/crawl/start` | Trigger crawl only |
