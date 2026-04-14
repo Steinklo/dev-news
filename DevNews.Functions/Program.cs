@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DevNews.Application;
 using DevNews.Infrastructure;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,8 +20,8 @@ builder.Services.Configure<JsonSerializerOptions>(options =>
 });
 
 builder.Services
-    .AddApplicationInsightsTelemetryWorkerService()
-    .ConfigureFunctionsApplicationInsights();
+    .AddOpenTelemetry()
+    .UseAzureMonitor();
 
 // Register Application and Infrastructure services
 builder.Services.AddApplicationServices();
