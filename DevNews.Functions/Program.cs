@@ -19,6 +19,7 @@ builder.Services.Configure<JsonSerializerOptions>(options =>
 });
 
 builder.Services
+    .AddApplicationInsightsTelemetryWorkerService()
     .ConfigureFunctionsApplicationInsights();
 
 // Register Application and Infrastructure services
