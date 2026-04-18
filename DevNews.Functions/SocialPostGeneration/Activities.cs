@@ -6,7 +6,6 @@ using DevNews.Application.SocialPost.Queries;
 using DevNews.Domain.Common.Enums;
 using Mediator;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace DevNews.Functions.SocialPostGeneration;
@@ -14,16 +13,13 @@ namespace DevNews.Functions.SocialPostGeneration;
 public class Activities
 {
     private readonly IMediator _mediator;
-    private readonly IConfiguration _configuration;
     private readonly ILogger<Activities> _logger;
 
     public Activities(
         IMediator mediator,
-        IConfiguration configuration,
         ILogger<Activities> logger)
     {
         _mediator = mediator;
-        _configuration = configuration;
         _logger = logger;
     }
 
@@ -78,17 +74,7 @@ public class Activities
         return new SocialPostPublishOutput(result.Data!.ExternalId, result.Data.PublishedUrl);
     }
 
-    [Function(nameof(IsVideoEnabledActivity))]
-    public Task<bool> IsVideoEnabledActivity(
-        [ActivityTrigger] object? input,
-        CancellationToken cancellationToken)
-    {
-        var enabled = bool.TryParse(_configuration["DigestVideo:Enabled"], out var value) && value;
-        _logger.LogInformation("Activity: DigestVideo:Enabled = {Enabled}", enabled);
-        return Task.FromResult(enabled);
-    }
-
-    [Function(nameof(GenerateDailyVideoScriptActivity))]
+[Function(nameof(GenerateDailyVideoScriptActivity))]
     public async Task<string?> GenerateDailyVideoScriptActivity(
         [ActivityTrigger] List<SocialPostEligibleItem> items,
         CancellationToken cancellationToken)

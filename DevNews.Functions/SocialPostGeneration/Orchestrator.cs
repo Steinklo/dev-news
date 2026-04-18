@@ -89,18 +89,12 @@ public class Orchestrator
             await context.CreateTimer(context.CurrentUtcDateTime.AddSeconds(2), CancellationToken.None);
         }
 
-        // Step 3: Video generation (if enabled)
+        // Step 3: Video generation
         var videoGenerated = false;
         var videoPublished = false;
 
-        var isVideoEnabled = await context.CallActivityAsync<bool>(
-            nameof(Activities.IsVideoEnabledActivity),
-            null,
-            OrchestrationDefaults.RetryOptions);
-
-        if (isVideoEnabled)
         {
-            logger.LogInformation("Video generation enabled, generating video script");
+            logger.LogInformation("Starting daily video generation");
 
             // Step 3a: Generate video script from all articles
             var script = await context.CallActivityAsync<string?>(
