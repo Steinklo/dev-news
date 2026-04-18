@@ -89,8 +89,6 @@ flowchart TB
 3. Agents & Frameworks
 4. AI Engineering
 5. AI Safety & Security
-6. Infrastructure & Cloud
-7. Open Source & Community
 
 ## Getting Started
 

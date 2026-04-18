@@ -57,6 +57,6 @@ DevNews.UnitTests/        # xUnit tests
 
 - JSON serialization: camelCase, null values omitted
 - Nullable reference types enabled throughout
-- Categories are a fixed enum (7 values, AI-focused, ordered by priority): AiModelsAndApis, AiDeveloperTools, AgentsAndFrameworks, AiEngineering, AiSafetyAndSecurity, InfrastructureAndCloud, OpenSourceAndCommunity
+- Categories are a fixed enum (5 values, AI-focused, ordered by priority): AiModelsAndApis, AiDeveloperTools, AgentsAndFrameworks, AiEngineering, AiSafetyAndSecurity
 - Severity levels: Critical, High, Medium, Low (security items only)
 - CI: GitHub Actions with OIDC auth, deploy dev on push to main, prod via manual workflow_dispatch

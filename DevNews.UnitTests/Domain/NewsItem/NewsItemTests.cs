@@ -200,8 +200,6 @@ public class NewsItemTests
     [InlineData(CategoryEnum.AiDeveloperTools)]
     [InlineData(CategoryEnum.AgentsAndFrameworks)]
     [InlineData(CategoryEnum.AiEngineering)]
-    [InlineData(CategoryEnum.InfrastructureAndCloud)]
-    [InlineData(CategoryEnum.OpenSourceAndCommunity)]
     public void Create_WithSeverityForNonSecurityCategory_ReturnsFailure(CategoryEnum category)
     {
         var result = DevNews.Domain.NewsItem.NewsItem.Create(
