@@ -44,7 +44,7 @@ public class AiDuplicationService(
                 return ResultResponse<bool>.Failure(promptResult.ErrorMessage);
             }
 
-            var aiResponse = await aiService.GenerateAsync(promptResult.Data!, ct);
+            var aiResponse = await aiService.GenerateAsync(promptResult.Data!, ct: ct);
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
             {
                 // If AI fails, fail open (assume not duplicate)

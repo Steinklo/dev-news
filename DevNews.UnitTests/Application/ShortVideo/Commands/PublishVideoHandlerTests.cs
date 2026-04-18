@@ -2,7 +2,7 @@ using DevNews.Application.Common.Models;
 using DevNews.Application.Common.Services;
 using DevNews.Application.ShortVideo.Commands;
 using DevNews.Domain.Common;
-using DevNews.Domain.ShortVideo.Enums;
+using DevNews.Domain.Common.Enums;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 

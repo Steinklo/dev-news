@@ -12,6 +12,8 @@ namespace DevNews.Infrastructure.Services;
 public static class CrawlServiceOptions
 {
     public static int MaxArticleAgeHours => 48;
+    public static int MaxArticlesPerFeed => 3;
+    public static int MaxCandidatesPerFeed => 10;
 
     public static IReadOnlyList<string> RssFeedUrls =>
     [
@@ -20,14 +22,30 @@ public static class CrawlServiceOptions
         "https://www.anthropic.com/feed",
         "https://blog.google/technology/ai/rss/",
         "https://ai.meta.com/blog/rss/",
+        "https://mistral.ai/feed/",
+
+        // AI Research
+        "https://deepmind.google/blog/rss.xml",
 
         // AI Developer Tools & Frameworks
         "https://huggingface.co/blog/feed.xml",
         "https://blog.langchain.dev/rss/",
+        "https://blog.llamaindex.ai/feed",
+
+        // AI Infrastructure & Cloud
+        "https://developer.nvidia.com/blog/feed/",
+        "https://aws.amazon.com/blogs/machine-learning/feed/",
+        "https://together.ai/blog/rss",
+
+        // Developer Platforms
+        "https://github.blog/feed/",
+        "https://devblogs.microsoft.com/ai-machine-learning/feed/",
 
         // AI News & Analysis
         "https://simonwillison.net/atom/everything/",
         "https://www.latent.space/feed",
+        "https://read.deeplearning.ai/the-batch/feed",
+        "https://www.infoq.com/ai-ml-data-eng/articles/rss/",
 
         // Security
         "https://feeds.feedburner.com/TheHackersNews",
@@ -127,13 +145,12 @@ public class AiCrawlService : ICrawlService
         // Get recent items, try up to 5 candidates until we extract one successfully
         var candidateItems = feed.Items
             .Where(item => item.PublishDate >= cutoffTime || item.LastUpdatedTime >= cutoffTime)
-            .Take(5)
+            .Take(CrawlServiceOptions.MaxCandidatesPerFeed)
             .ToList();
 
         foreach (var item in candidateItems)
         {
-            // Stop after first successful extraction
-            if (articles.Count > 0)
+            if (articles.Count >= CrawlServiceOptions.MaxArticlesPerFeed)
                 break;
 
             ct.ThrowIfCancellationRequested();

@@ -4,7 +4,6 @@ using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace DevNews.Infrastructure.Services;
 
@@ -41,18 +40,20 @@ public class AnthropicAiService : IAiService
         _client = new AnthropicClient { ApiKey = apiKey };
     }
 
-    public async Task<ResultResponse<string>> GenerateAsync(string prompt, CancellationToken ct = default)
+    public async Task<ResultResponse<string>> GenerateAsync(string prompt, string? modelOverride = null, CancellationToken ct = default)
     {
         try
         {
+            var model = modelOverride ?? AnthropicOptions.Model;
+
             _logger.LogDebug(
                 "Calling Anthropic API with model {Model}, prompt length: {Length}",
-                AnthropicOptions.Model,
+                model,
                 prompt.Length);
 
             var parameters = new MessageCreateParams
             {
-                Model = AnthropicOptions.Model,
+                Model = model,
                 MaxTokens = AnthropicOptions.MaxTokens,
                 System = "You are a JSON-only API. Output valid JSON without any preamble, explanation, or markdown formatting.",
                 Messages =

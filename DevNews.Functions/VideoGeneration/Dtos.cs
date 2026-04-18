@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using DevNews.Domain.ShortVideo.Enums;
+using DevNews.Domain.Common.Enums;
 
 namespace DevNews.Functions.VideoGeneration;
 

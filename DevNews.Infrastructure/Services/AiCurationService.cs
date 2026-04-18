@@ -9,6 +9,7 @@ namespace DevNews.Infrastructure.Services;
 
 public class AiCurationService(IAiService aiService) : ICurationService
 {
+    private const string CurationModel = "claude-sonnet-4-5-20250514";
     /// <summary>
     /// Known source mappings from domain to display name.
     /// </summary>
@@ -41,6 +42,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
         ["simonwillison.net"] = "Simon Willison",
         ["latent.space"] = "Latent Space",
         ["www.latent.space"] = "Latent Space",
+        ["read.deeplearning.ai"] = "The Batch (Andrew Ng)",
 
         // Cloud / AI Infrastructure
         ["aws.amazon.com"] = "AWS",
@@ -116,7 +118,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
             }
 
             // Call AI service to extract article data
-            var aiResponse = await aiService.GenerateAsync(promptResult.Data!, ct);
+            var aiResponse = await aiService.GenerateAsync(promptResult.Data!, CurationModel, ct);
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
             {
                 return ResultResponse<CleanedArticle>.Failure(aiResponse.ErrorMessage);

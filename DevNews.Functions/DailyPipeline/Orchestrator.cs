@@ -1,5 +1,5 @@
 using DevNews.Functions.NightlyCrawl;
-using DevNews.Functions.VideoGeneration;
+using DevNews.Functions.SocialPostGeneration;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -36,34 +36,30 @@ public class Orchestrator
                 context.CurrentUtcDateTime - startTime);
         }
 
-        // Step 2: Run video generation if crawl produced new items
-        VideoGenerationResult? videoResult = null;
+        // Step 2: Run social post generation if crawl produced new items
+        SocialPostGenerationResult? socialPostResult = null;
 
         if (crawlResult.Persisted > 0)
         {
             try
             {
-                videoResult = await context.CallSubOrchestratorAsync<VideoGenerationResult>(
-                    nameof(VideoGeneration.Orchestrator.VideoGenerationOrchestrator), (object?)null);
+                socialPostResult = await context.CallSubOrchestratorAsync<SocialPostGenerationResult>(
+                    nameof(SocialPostGeneration.Orchestrator.SocialPostOrchestrator), (object?)null);
 
                 logger.LogInformation(
-                    "Video generation completed. Videos: {Videos}, Published: {Published}",
-                    videoResult.VideosGenerated, videoResult.Published);
+                    "Social post generation completed. PostsPublished: {PostsPublished}",
+                    socialPostResult.PostsPublished);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Video generation failed, but crawl succeeded");
+                logger.LogError(ex, "Social post generation failed, but crawl succeeded");
             }
-        }
-        else
-        {
-            logger.LogInformation("No new items persisted, skipping video generation");
         }
 
         var duration = context.CurrentUtcDateTime - startTime;
 
         logger.LogInformation("Daily pipeline completed in {Duration}", duration);
 
-        return new DailyPipelineResult(crawlResult, videoResult, duration);
+        return new DailyPipelineResult(crawlResult, socialPostResult, duration);
     }
 }

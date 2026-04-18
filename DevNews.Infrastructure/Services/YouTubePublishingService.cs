@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DevNews.Infrastructure.Services;
 
-public class YouTubePublishingService : IPlatformVideoPublisher
+public class YouTubePublishingService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<YouTubePublishingService> _logger;
