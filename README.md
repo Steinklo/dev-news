@@ -1,47 +1,56 @@
 # DevNews Backend
 
-Serverless C# backend for an AI-powered developer news aggregator. Automatically crawls, curates, and generates short-form video content from developer news — published to YouTube and LinkedIn.
+Serverless C# backend for an AI-powered developer news aggregator. Automatically crawls, curates, and publishes developer news — with social media posts and daily video summaries.
 
 Built with Azure Functions V4 (.NET 10), Cosmos DB, Anthropic Claude AI, and Creatomate.
 
 ## Daily Pipeline
 
-A single orchestrator runs the full daily pipeline — crawling news, then generating videos from the highest-relevance items.
-
 ```mermaid
 flowchart LR
     Timer["Timer (06:00 UTC)"] --> DP[DailyPipelineOrchestrator]
     DP --> Crawl[NightlyCrawlOrchestrator]
-    Crawl --> Video[VideoGenerationOrchestrator]
+    Crawl --> Social[SocialPostOrchestrator]
 ```
 
-### News Crawl
+### Step 1: News Crawl
+
+Discovers and curates articles from 22 RSS feeds (up to 3 articles per feed).
 
 ```mermaid
 flowchart TD
-    A[Discover articles via RSS] --> B[AI curation — summary, category, relevance score]
+    A[Discover articles from 22 RSS feeds] --> B[AI curation via Sonnet — title, summary, category, relevance]
     B --> C{Relevance >= 50?}
     C -- No --> D[Filtered out]
-    C -- Yes --> E[AI deduplication check]
+    C -- Yes --> E[AI deduplication via Haiku]
     E --> F{Duplicate?}
     F -- Yes --> G[Skipped]
     F -- No --> H[Persist to Cosmos DB]
 ```
 
-### Video Generation
+### Step 2: Social Media Posts
 
-Only runs if the crawl persisted new items. Selects up to 5 items with relevance score 85+.
+Generates and publishes individual posts for top articles (relevance >= 85).
 
 ```mermaid
 flowchart TD
-    A[Select eligible items — score 85+] --> B[Generate script — Claude AI]
-    B --> C[Validate script — Claude AI]
-    C --> D{Valid?}
-    D -- No --> E[Skipped]
-    D -- Yes --> F[Render video — Creatomate]
-    F --> G[Upload to Azure Blob Storage]
-    G --> H[Publish to YouTube + LinkedIn]
-    H --> I[Persist ShortVideo to Cosmos DB]
+    A[Select articles — relevance 85+] --> B[Per article: generate social post via Haiku]
+    B --> C[Publish to LinkedIn with original article link]
+    C --> D[Persist SocialPost to Cosmos DB]
+```
+
+### Step 3: Daily Video
+
+Generates a single daily video summarizing top articles. Requires Creatomate API key.
+
+```mermaid
+flowchart TD
+    A[Generate combined video script via Haiku] --> B[Validate script — quality score 70+]
+    B --> C{Valid?}
+    C -- No --> D[Skipped]
+    C -- Yes --> E[Render video — Creatomate + DALL-E + Azure TTS]
+    E --> F[Publish to YouTube + LinkedIn]
+    F --> G[Persist ShortVideo to Cosmos DB]
 ```
 
 ## Architecture
@@ -63,12 +72,14 @@ flowchart TB
 |--------|-------|-------------|
 | `GET` | `/api/v1/news/categories` | List all categories |
 | `GET` | `/api/v1/news/{id}` | Single news item by ID |
-| `GET` | `/api/v1/news/category/{category}?year_month=YYYY-MM&limit=N` | News by category (limit default 50, max 100) |
-| `POST` | `/api/v1/pipeline/start` | Trigger daily pipeline |
+| `GET` | `/api/v1/news/category/{category}?year_month=YYYY-MM&limit=N` | News by category |
+| `POST` | `/api/v1/pipeline/start` | Trigger full daily pipeline |
 | `GET` | `/api/v1/pipeline/status/{instanceId}` | Pipeline status |
 | `POST` | `/api/v1/crawl/start` | Trigger crawl only |
 | `GET` | `/api/v1/crawl/status/{instanceId}` | Crawl status |
-| `POST` | `/api/v1/video-generation/start` | Trigger video generation only |
+| `POST` | `/api/v1/social-posts/generate` | Trigger social posts + video |
+| `GET` | `/api/v1/social-posts/status/{instanceId}` | Social post generation status |
+| `POST` | `/api/v1/video-generation/start` | Trigger per-article video (legacy) |
 | `GET` | `/api/v1/video-generation/status/{instanceId}` | Video generation status |
 
 ## Categories
@@ -94,20 +105,26 @@ cd DevNews.Functions && func start
 
 Set in `local.settings.json` (local) or Azure App Settings (deployed):
 
-| Key | Description |
-|-----|-------------|
-| `CosmosDbEndpoint` | Cosmos DB endpoint URL |
-| `CosmosDbKey` | Cosmos DB access key |
-| `AnthropicApiKey` | Claude AI API key |
-| `AzureStorageConnectionString` | Azure Blob Storage connection string |
-| `CreatomateApiKey` | Creatomate video rendering API key |
-| `VideoGeneration:TtsVoiceName` | Azure TTS voice name (default: `en-US-AndrewMultilingualNeural`) |
-| `YouTubeClientId` | YouTube OAuth client ID |
-| `YouTubeClientSecret` | YouTube OAuth client secret |
-| `YouTubeRefreshToken` | YouTube OAuth refresh token |
-| `LinkedInAccessToken` | LinkedIn API access token |
-| `VideoGeneration:LinkedInOrganizationId` | LinkedIn company page ID |
-| `DailyPipelineSchedule` | Cron expression for daily run (e.g. `0 0 6 * * *`) |
+| Key | Description | Required |
+|-----|-------------|----------|
+| `CosmosDbEndpoint` | Cosmos DB endpoint URL | Yes |
+| `CosmosDbKey` | Cosmos DB access key | Yes |
+| `AnthropicApiKey` | Claude AI API key | Yes |
+| `AzureStorageConnectionString` | Azure Blob Storage connection string | Yes |
+| `LinkedInAccessToken` | LinkedIn API access token | For social posts |
+| `VideoGeneration:LinkedInOrganizationId` | LinkedIn company page ID | For social posts |
+| `CreatomateApiKey` | Creatomate video rendering API key | For video |
+| `VideoGeneration:TtsVoiceName` | Azure TTS voice (default: `en-US-AndrewMultilingualNeural`) | No |
+| `YouTubeClientId` | YouTube OAuth client ID | For video |
+| `YouTubeClientSecret` | YouTube OAuth client secret | For video |
+| `YouTubeRefreshToken` | YouTube OAuth refresh token | For video |
+| `DailyPipelineSchedule` | Cron expression (e.g. `0 0 6 * * *`) | No |
+
+### Incremental activation
+
+1. **Core (required keys only):** Crawl + curate + persist to website
+2. **Add LinkedIn secrets:** Social media posts start publishing
+3. **Add Creatomate + YouTube secrets:** Daily video generation starts
 
 ## CI/CD
 
@@ -118,9 +135,9 @@ Set in `local.settings.json` (local) or Azure App Settings (deployed):
 ## Tech Stack
 
 - **.NET 10** — Azure Functions V4 isolated worker
-- **Cosmos DB** — Document storage with partition key strategy
-- **Anthropic Claude** — Article curation, script generation, validation
-- **Creatomate** — Programmatic video rendering with DALL-E backgrounds and Azure TTS voiceover
+- **Cosmos DB** — Document storage (serverless)
+- **Anthropic Claude** — Sonnet for curation, Haiku for dedup/scripts/posts
+- **Creatomate** — Programmatic video rendering with DALL-E backgrounds and Azure TTS
 - **Azure Blob Storage** — Video and thumbnail assets
 - **Durable Functions** — Orchestration with retry policies and fan-out
 - **Mediator** — Source-generated CQRS
