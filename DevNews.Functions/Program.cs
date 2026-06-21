@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DevNews.Application;
+using DevNews.Functions.Middleware;
 using DevNews.Infrastructure;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.Azure.Functions.Worker;
@@ -11,6 +12,9 @@ using Microsoft.Extensions.Hosting;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
+
+// Per-IP rate limiting for the anonymous public news endpoints (wallet protection).
+builder.UseMiddleware<RateLimitingMiddleware>();
 
 // Configure JSON serialization to use camelCase
 builder.Services.Configure<JsonSerializerOptions>(options =>
