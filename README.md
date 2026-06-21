@@ -1,87 +1,26 @@
 # DevNews Backend
 
-Serverless C# backend for an AI-powered developer news aggregator. Automatically crawls, curates, and generates short-form video content from developer news — published to YouTube and LinkedIn.
+> Serverless C# backend that crawls developer news, curates it with AI, and turns the best stories into short-form videos.
 
-Built with Azure Functions V4 (.NET 10), Cosmos DB, Anthropic Claude AI, and Creatomate.
+DevNews Backend is an Azure Functions app (.NET 10 isolated worker). It ingests RSS feeds, uses Anthropic Claude to summarize, categorize, score, and de-duplicate articles, and stores them in Cosmos DB. A daily [Durable Functions](https://learn.microsoft.com/azure/azure-functions/durable/) pipeline then renders short videos with Creatomate and publishes them to YouTube and LinkedIn. A small public read API serves the curated news to the frontend.
 
-## Daily Pipeline
+Part of the **DevNews** product, alongside the web frontend ([`dev-news-frontend`](https://github.com/Steinklo/dev-news-frontend)) and infrastructure-as-code ([`dev-news-iac`](https://github.com/Steinklo/dev-news-iac)).
 
-A single orchestrator runs the full daily pipeline — crawling news, then generating videos from the highest-relevance items.
+## How it works
+
+A single orchestrator runs the daily pipeline on a timer (06:00 UTC): crawl and curate news, then generate videos from the highest-scoring items.
 
 ```mermaid
 flowchart LR
-    Timer["Timer (06:00 UTC)"] --> DP[DailyPipelineOrchestrator]
-    DP --> Crawl[NightlyCrawlOrchestrator]
-    Crawl --> Video[VideoGenerationOrchestrator]
+    Timer["Timer (06:00 UTC)"] --> DP[Daily pipeline]
+    DP --> Crawl[Crawl & AI-curate]
+    Crawl --> Video[Generate & publish videos]
 ```
 
-### News Crawl
+- **Crawl** — discover RSS articles → Claude summary, category & relevance score → keep relevance ≥ 50 → AI de-duplication → persist to Cosmos DB.
+- **Video** — select up to 5 items scoring 85+ → Claude script → validate → Creatomate render → Azure Blob → publish to YouTube + LinkedIn.
 
-```mermaid
-flowchart TD
-    A[Discover articles via RSS] --> B[AI curation — summary, category, relevance score]
-    B --> C{Relevance >= 50?}
-    C -- No --> D[Filtered out]
-    C -- Yes --> E[AI deduplication check]
-    E --> F{Duplicate?}
-    F -- Yes --> G[Skipped]
-    F -- No --> H[Persist to Cosmos DB]
-```
-
-### Video Generation
-
-Only runs if the crawl persisted new items. Selects up to 5 items with relevance score 85+.
-
-```mermaid
-flowchart TD
-    A[Select eligible items — score 85+] --> B[Generate script — Claude AI]
-    B --> C[Validate script — Claude AI]
-    C --> D{Valid?}
-    D -- No --> E[Skipped]
-    D -- Yes --> F[Render video — Creatomate]
-    F --> G[Upload to Azure Blob Storage]
-    G --> H[Publish to YouTube + LinkedIn]
-    H --> I[Persist ShortVideo to Cosmos DB]
-```
-
-## Architecture
-
-Clean Architecture with Domain-Driven Design (DDD).
-
-```mermaid
-flowchart TB
-    Functions --> Application
-    Functions --> Infrastructure
-    Infrastructure --> Application
-    Application --> Domain
-    Infrastructure --> Domain
-```
-
-## API Endpoints
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/v1/news/categories` | List all categories |
-| `GET` | `/api/v1/news/{id}` | Single news item by ID |
-| `GET` | `/api/v1/news/category/{category}?year_month=YYYY-MM&limit=N` | News by category (limit default 50, max 100) |
-| `POST` | `/api/v1/pipeline/start` | Trigger daily pipeline |
-| `GET` | `/api/v1/pipeline/status/{instanceId}` | Pipeline status |
-| `POST` | `/api/v1/crawl/start` | Trigger crawl only |
-| `GET` | `/api/v1/crawl/status/{instanceId}` | Crawl status |
-| `POST` | `/api/v1/video-generation/start` | Trigger video generation only |
-| `GET` | `/api/v1/video-generation/status/{instanceId}` | Video generation status |
-
-## Categories
-
-1. AI Models & APIs
-2. AI Developer Tools
-3. Agents & Frameworks
-4. AI Engineering
-5. AI Safety & Security
-6. Infrastructure & Cloud
-7. Open Source & Community
-
-## Getting Started
+## Quick start
 
 ```bash
 dotnet restore DevNews.sln
@@ -90,39 +29,44 @@ dotnet test DevNews.UnitTests/DevNews.UnitTests.csproj
 cd DevNews.Functions && func start
 ```
 
-### Configuration
+`func start` serves the API at `http://localhost:7071`. Confirm with `GET http://localhost:7071/api/v1/news/categories`. Local runs need a storage backend — Azurite or a real storage account — for Durable Functions.
 
-Set in `local.settings.json` (local) or Azure App Settings (deployed):
+## API
 
-| Key | Description |
-|-----|-------------|
-| `CosmosDbEndpoint` | Cosmos DB endpoint URL |
-| `CosmosDbKey` | Cosmos DB access key |
-| `AnthropicApiKey` | Claude AI API key |
-| `AzureStorageConnectionString` | Azure Blob Storage connection string |
-| `CreatomateApiKey` | Creatomate video rendering API key |
-| `VideoGeneration:TtsVoiceName` | Azure TTS voice name (default: `en-US-AndrewMultilingualNeural`) |
-| `YouTubeClientId` | YouTube OAuth client ID |
-| `YouTubeClientSecret` | YouTube OAuth client secret |
-| `YouTubeRefreshToken` | YouTube OAuth refresh token |
-| `LinkedInAccessToken` | LinkedIn API access token |
-| `VideoGeneration:LinkedInOrganizationId` | LinkedIn company page ID |
-| `DailyPipelineSchedule` | Cron expression for daily run (e.g. `0 0 6 * * *`) |
+Public read endpoints are anonymous and rate-limited to **60 requests/min per IP**. Pipeline triggers require a Function key.
 
-## CI/CD
+| Method | Route | Auth |
+|--------|-------|------|
+| `GET` | `/api/v1/news/categories` | Anonymous |
+| `GET` | `/api/v1/news/{id}` | Anonymous |
+| `GET` | `/api/v1/news/category/{category}?year_month=YYYY-MM&limit=N` | Anonymous |
+| `POST` / `GET` | `/api/v1/pipeline/start` · `/pipeline/status/{instanceId}` | Function key |
+| `POST` / `GET` | `/api/v1/crawl/start` · `/crawl/status/{instanceId}` | Function key |
+| `POST` / `GET` | `/api/v1/video-generation/start` · `/video-generation/status/{instanceId}` | Function key |
 
-- **PR builds**: Build + test validation
-- **Push to main**: Build, test, deploy to dev (automatic)
-- **Prod deploy**: Manual trigger via GitHub Actions
+`limit` defaults to 50 (max 100); `year_month` defaults to the current month. Categories: AI Models & APIs, AI Developer Tools, Agents & Frameworks, AI Engineering, AI Safety & Security, Infrastructure & Cloud, Open Source & Community.
 
-## Tech Stack
+## Prerequisites & configuration
 
-- **.NET 10** — Azure Functions V4 isolated worker
-- **Cosmos DB** — Document storage with partition key strategy
-- **Anthropic Claude** — Article curation, script generation, validation
-- **Creatomate** — Programmatic video rendering with DALL-E backgrounds and Azure TTS voiceover
-- **Azure Blob Storage** — Video and thumbnail assets
-- **Durable Functions** — Orchestration with retry policies and fan-out
-- **Mediator** — Source-generated CQRS
-- **FluentValidation** — Input validation
-- **xUnit** — Unit testing
+| Requirement | Notes |
+|---|---|
+| .NET 10 SDK | Build and test |
+| Azure Functions Core Tools v4 | `func start` for local runs |
+| Azurite (or a storage account) | Required by Durable Functions locally |
+| Cosmos DB + Anthropic API key | Minimum to exercise the read API and crawl |
+
+Set configuration in `local.settings.json` locally (gitignored) or in Azure App Settings / Key Vault when deployed — **never commit secrets**. Core keys: `CosmosDbEndpoint`, `CosmosDbKey`, `AnthropicApiKey`, `AzureStorageConnectionString`. Video and publishing add `CreatomateApiKey`, `VideoGeneration:TtsVoiceName`, `YouTubeClientId` / `YouTubeClientSecret` / `YouTubeRefreshToken`, `LinkedInAccessToken`, `VideoGeneration:LinkedInOrganizationId`, and `DailyPipelineSchedule`.
+
+## Links
+
+- Frontend — [`dev-news-frontend`](https://github.com/Steinklo/dev-news-frontend) · live at [dev-news.dev](https://dev-news.dev)
+- Infrastructure — [`dev-news-iac`](https://github.com/Steinklo/dev-news-iac)
+- Dev API (example): `https://func-devnews-api-dev.azurewebsites.net/api/v1`
+
+## Contributing
+
+Branch off `main` and open a PR; GitHub Actions runs build + tests. Merges to `main` auto-deploy to dev; production is a manual workflow dispatch.
+
+## License
+
+No license has been declared — all rights reserved by the author.
