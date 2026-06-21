@@ -69,4 +69,4 @@ Branch off `main` and open a PR; GitHub Actions runs build + tests. Merges to `m
 
 ## License
 
-No license has been declared — all rights reserved by the author.
+Released under the [MIT License](LICENSE).
