@@ -13,7 +13,10 @@ public class SocialPostPublisher : ISocialPostPublisher
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<SocialPostPublisher> _logger;
+    private readonly string _accessToken;
     private readonly string _organizationId;
+
+    public string PlatformName => "LinkedIn";
 
     public SocialPostPublisher(
         HttpClient httpClient,
@@ -23,20 +26,26 @@ public class SocialPostPublisher : ISocialPostPublisher
         _httpClient = httpClient;
         _logger = logger;
 
-        var accessToken = configuration["LinkedInAccessToken"]
-            ?? throw new InvalidOperationException("LinkedInAccessToken is not configured");
-        _organizationId = configuration["VideoGeneration:LinkedInOrganizationId"]
-            ?? throw new InvalidOperationException("VideoGeneration:LinkedInOrganizationId is not configured");
+        // LinkedIn is optional — missing credentials must NOT throw here (see LinkedInPublishingService).
+        _accessToken = configuration["LinkedInAccessToken"] ?? "";
+        _organizationId = configuration["VideoGeneration:LinkedInOrganizationId"] ?? "";
 
         _httpClient.BaseAddress = new Uri("https://api.linkedin.com/v2/");
-        _httpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", accessToken);
+        if (!string.IsNullOrWhiteSpace(_accessToken))
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _accessToken);
     }
 
     public async Task<ResultResponse<PlatformPublishResult>> PublishTextAsync(
         string text,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(_accessToken) || string.IsNullOrWhiteSpace(_organizationId))
+        {
+            _logger.LogInformation("LinkedIn text publishing skipped — LinkedIn credentials are not configured");
+            return ResultResponse<PlatformPublishResult>.Failure("LinkedIn credentials are not configured");
+        }
+
         try
         {
             var postBody = new

@@ -6,8 +6,9 @@ public class SocialPostText : ValueObject
 {
     public string Value { get; private set; }
 
-    public const int MinLength = 100;
-    public const int MaxLength = 2800;
+    // Kept small so a single post fits every target platform (Bluesky 300, X 280, etc.).
+    public const int MinLength = 50;
+    public const int MaxLength = 300;
 
     private SocialPostText(string value)
     {
