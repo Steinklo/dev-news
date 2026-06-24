@@ -14,6 +14,7 @@ public static class ConfigureServices
     private const string DatabaseId = "dev-news-db";
     private const string ContainerId = "news-items";
     private const string ShortVideoContainerId = "short-videos";
+    private const string SocialPostContainerId = "text-posts";
 
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
@@ -38,6 +39,12 @@ public static class ConfigureServices
             return new ShortVideoCosmosRepository(cosmosClient, DatabaseId, ShortVideoContainerId);
         });
 
+        services.AddScoped<ISocialPostRepository>(sp =>
+        {
+            var cosmosClient = sp.GetRequiredService<CosmosClient>();
+            return new SocialPostCosmosRepository(cosmosClient, DatabaseId, SocialPostContainerId);
+        });
+
         // Azure Blob Storage
         services.AddSingleton(_ =>
             new BlobServiceClient(configuration["AzureStorageConnectionString"]));
@@ -57,6 +64,10 @@ public static class ConfigureServices
         services.AddScoped<IVideoScriptService, AiVideoScriptService>();
         services.AddScoped<IVideoScriptValidationService, AiVideoScriptValidationService>();
         services.AddHttpClient<IVideoGenerationService, CreatomateVideoGenerationService>();
+
+        // Social post services
+        services.AddScoped<ISocialPostGenerationService, AiSocialPostService>();
+        services.AddHttpClient<ISocialPostPublisher, SocialPostPublisher>();
 
         // Platform publishing services
         services.AddHttpClient<YouTubePublishingService>();

@@ -1,5 +1,5 @@
 using DevNews.Domain.Common;
-using DevNews.Domain.ShortVideo.Enums;
+using DevNews.Domain.Common.Enums;
 
 namespace DevNews.Domain.ShortVideo.ValueObjects;
 

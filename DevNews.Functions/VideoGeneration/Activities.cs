@@ -2,7 +2,7 @@ using DevNews.Application.Common.Models;
 using DevNews.Application.ShortVideo.Commands;
 using DevNews.Application.ShortVideo.Queries;
 using DevNews.Application.ShortVideo.Dtos;
-using DevNews.Domain.ShortVideo.Enums;
+using DevNews.Domain.Common.Enums;
 using Mediator;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;

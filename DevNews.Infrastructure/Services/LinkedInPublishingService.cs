@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DevNews.Infrastructure.Services;
 
-public class LinkedInPublishingService : IPlatformVideoPublisher
+public class LinkedInPublishingService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<LinkedInPublishingService> _logger;

@@ -27,27 +27,41 @@ public class CreatomateVideoGenerationServiceTests
     }
 
     [Fact]
-    public void BuildVideoSource_ContainsAllElements()
+    public void BuildVideoSource_ContainsExpectedElements_NoDallE()
     {
         var source = _sut.BuildVideoSource("Test script for video", "Test Title");
         var json = JsonSerializer.Serialize(source);
 
-        Assert.Contains("dall-e-3", json);
-        Assert.Contains("Test Title", json);
-        Assert.Contains("Test script for video", json);
-        Assert.Contains("microsoft", json);
+        Assert.Contains("Test Title", json);              // title text
+        Assert.Contains("Test script for video", json);   // voiceover source
+        Assert.Contains("microsoft", json);               // Azure TTS via Creatomate
         Assert.Contains("en-US-AndrewMultilingualNeural", json);
-        Assert.Contains("wipe", json);
+        Assert.Contains("wipe", json);                    // progress bar
+        Assert.Contains("transcript_source", json);       // synced captions
+        Assert.DoesNotContain("dall-e", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("openai", json, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void BuildVideoSource_ImagePromptContainsTitle()
+    public void BuildVideoSource_CaptionsReferenceTheNamedVoiceover()
     {
         var source = _sut.BuildVideoSource("Script", "GPT-5 Released Today");
         var json = JsonSerializer.Serialize(source);
+        using var doc = JsonDocument.Parse(json);
 
-        Assert.Contains("GPT-5 Released Today", json);
-        Assert.Contains("cinematic", json);
+        Assert.Contains("GPT-5 Released Today", json);    // title text still present
+        Assert.DoesNotContain("cinematic", json);         // old DALL-E prompt gone
+
+        var elements = doc.RootElement.GetProperty("elements").EnumerateArray().ToList();
+        var audioName = elements
+            .First(e => e.GetProperty("type").GetString() == "audio")
+            .GetProperty("name").GetString();
+        var captionSource = elements
+            .First(e => e.TryGetProperty("transcript_source", out _))
+            .GetProperty("transcript_source").GetString();
+
+        // The caption is wired to the voiceover by name — this coupling must hold.
+        Assert.Equal(audioName, captionSource);
     }
 
     [Fact]

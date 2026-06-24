@@ -1,7 +1,7 @@
 using DevNews.Application.Common.Models;
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
-using DevNews.Domain.ShortVideo.Enums;
+using DevNews.Domain.Common.Enums;
 using Mediator;
 using Microsoft.Extensions.Logging;
 

@@ -55,7 +55,7 @@ public class AiCurationServiceTests
 
     private void SetupAiResponse(string json)
     {
-        _aiService.GenerateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _aiService.GenerateAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ResultResponse<string>.Success(json));
     }
 
@@ -88,7 +88,7 @@ public class AiCurationServiceTests
     [Fact]
     public async Task CurateAsync_AiServiceFails_ReturnsFailure()
     {
-        _aiService.GenerateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _aiService.GenerateAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ResultResponse<string>.Failure("API error"));
         var crawled = CreateCrawledArticle();
 

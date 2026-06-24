@@ -11,8 +11,6 @@ public class NewsCategoryTests
     [InlineData(CategoryEnum.AgentsAndFrameworks)]
     [InlineData(CategoryEnum.AiEngineering)]
     [InlineData(CategoryEnum.AiSafetyAndSecurity)]
-    [InlineData(CategoryEnum.InfrastructureAndCloud)]
-    [InlineData(CategoryEnum.OpenSourceAndCommunity)]
     public void Create_ValidCategory_ReturnsSuccess(CategoryEnum category)
     {
         var result = NewsCategory.Create(category);
@@ -44,9 +42,9 @@ public class NewsCategoryTests
     [Fact]
     public void ToString_ReturnsEnumName()
     {
-        var result = NewsCategory.Create(CategoryEnum.InfrastructureAndCloud);
+        var result = NewsCategory.Create(CategoryEnum.AiEngineering);
 
-        Assert.Equal("InfrastructureAndCloud", result.Data!.ToString());
+        Assert.Equal("AiEngineering", result.Data!.ToString());
     }
 
     [Fact]
@@ -62,7 +60,7 @@ public class NewsCategoryTests
     public void Equals_DifferentCategory_ReturnsFalse()
     {
         var category1 = NewsCategory.Create(CategoryEnum.AiSafetyAndSecurity).Data!;
-        var category2 = NewsCategory.Create(CategoryEnum.InfrastructureAndCloud).Data!;
+        var category2 = NewsCategory.Create(CategoryEnum.AiEngineering).Data!;
 
         Assert.False(category1.Equals(category2));
     }

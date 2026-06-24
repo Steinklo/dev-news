@@ -1,6 +1,6 @@
 using DevNews.Application.Common.Models;
 using DevNews.Application.ShortVideo.Dtos;
-using DevNews.Domain.ShortVideo.Enums;
+using DevNews.Domain.Common.Enums;
 using DevNews.Functions.Common;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
@@ -11,6 +11,7 @@ namespace DevNews.Functions.VideoGeneration;
 public class Orchestrator
 {
     private static readonly Platform[] TargetPlatforms = [Platform.YouTube, Platform.LinkedIn];
+    private const int MinQualityScore = 70;
 
     [Function(nameof(VideoGenerationOrchestrator))]
     public async Task<VideoGenerationResult> VideoGenerationOrchestrator(
@@ -74,8 +75,11 @@ public class Orchestrator
 
             await context.CreateTimer(context.CurrentUtcDateTime.AddSeconds(2), CancellationToken.None);
 
-            if (validationResult == null || !validationResult.IsValid)
+            if (validationResult == null || !validationResult.IsValid || validationResult.QualityScore < MinQualityScore)
             {
+                logger.LogInformation(
+                    "Script rejected for {ItemId}: IsValid={IsValid}, QualityScore={Score}, Reason={Reason}",
+                    item.NewsItemId, validationResult?.IsValid, validationResult?.QualityScore, validationResult?.Reason);
                 failed++;
                 continue;
             }

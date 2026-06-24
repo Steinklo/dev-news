@@ -22,6 +22,13 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    // Creatomate render constants. VoiceoverElementName couples the audio element's `name` to the
+    // caption element's `transcript_source` — they MUST stay equal or the captions silently break.
+    private const string VoiceoverElementName = "Voiceover";
+    private const string FontFamily = "Inter";
+    private const string BackgroundColor = "#0a0a12";
+    private const string TextColor = "#ffffff";
+
     public CreatomateVideoGenerationService(
         HttpClient httpClient,
         IConfiguration configuration,
@@ -80,9 +87,6 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
 
     internal object BuildVideoSource(string script, string title)
     {
-        var imagePrompt = $"A cinematic wide-angle photo related to: {title}. " +
-                          "Dark moody tech aesthetic, suitable as video background. No text, no logos.";
-
         return new
         {
             output_format = "mp4",
@@ -90,15 +94,14 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
             height = 1920,
             elements = new object[]
             {
-                // Background image (AI-generated via DALL-E)
+                // Solid dark background (replaces the DALL-E image — no external call)
                 new
                 {
-                    type = "image",
-                    provider = "openai model_id=dall-e-3 style=vivid",
-                    source = imagePrompt,
+                    type = "shape",
                     width = "100%",
                     height = "100%",
-                    color_overlay = "rgba(0,0,0,0.55)",
+                    fill_color = BackgroundColor,
+                    path = "M 0 0 L 100 0 L 100 100 L 0 100 Z",
                 },
                 // Title text
                 new
@@ -110,8 +113,8 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
                     width = "90%",
                     x_alignment = "50%",
                     y_alignment = "50%",
-                    fill_color = "#ffffff",
-                    font_family = "Inter",
+                    fill_color = TextColor,
+                    font_family = FontFamily,
                     font_weight = "800",
                     font_size = "8 vmin",
                     animations = new object[]
@@ -119,40 +122,34 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
                         new { type = "slide", direction = "0°", duration = "1 s" },
                     },
                 },
-                // Script text with appear animation
+                // Auto-generated captions, synced to the voiceover (replaces the static script block).
+                // 'text' is a placeholder; Creatomate fills captions from transcript_source.
                 new
                 {
                     type = "text",
                     track = 2,
-                    text = script,
-                    y = "55%",
+                    text = " ",
+                    transcript_source = VoiceoverElementName,
+                    transcript_effect = "highlight",
+                    transcript_split = "word",
+                    transcript_maximum_length = 24,
+                    y = "75%",
                     width = "85%",
-                    height = "40%",
                     x_alignment = "50%",
-                    y_alignment = "0%",
-                    x_padding = "3 vw",
-                    fill_color = "rgba(255,255,255,0.95)",
-                    font_family = "Inter",
-                    font_weight = "400",
-                    font_size_maximum = "5 vmin",
-                    font_size_minimum = "2 vmin",
+                    y_alignment = "50%",
+                    fill_color = TextColor,
+                    font_family = FontFamily,
+                    font_weight = "700",
+                    font_size = "6 vmin",
                     background_color = "rgba(0,0,0,0.3)",
                     background_x_padding = "30%",
                     background_y_padding = "30%",
                     background_border_radius = "1 vmin",
-                    animations = new object[]
-                    {
-                        new
-                        {
-                            type = "text-appear",
-                            easing = "linear",
-                            split = "word",
-                        },
-                    },
                 },
-                // Voiceover (Azure TTS built into Creatomate)
+                // Voiceover (Azure TTS via Creatomate) — named so captions can reference it
                 new
                 {
+                    name = VoiceoverElementName,
                     type = "audio",
                     provider = $"microsoft voice_id={_voiceName}",
                     source = script,

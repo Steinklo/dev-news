@@ -17,7 +17,7 @@ public class AiVideoScriptService(IAiService aiService) : IVideoScriptService
         {
             var prompt = BuildPrompt(title, summary, category);
 
-            var aiResponse = await aiService.GenerateAsync(prompt, ct);
+            var aiResponse = await aiService.GenerateAsync(prompt, ct: ct);
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
                 return ResultResponse<string>.Failure(aiResponse.ErrorMessage);
 

@@ -1,5 +1,6 @@
+using DevNews.Functions.DailyVideo;
 using DevNews.Functions.NightlyCrawl;
-using DevNews.Functions.VideoGeneration;
+using DevNews.Functions.SocialPostGeneration;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -32,38 +33,50 @@ public class Orchestrator
         {
             logger.LogError(ex, "Crawl orchestration failed");
             return new DailyPipelineResult(
-                new NightlyCrawlResult(0, 0, 0, 0, 0, 1, TimeSpan.Zero), null,
+                new NightlyCrawlResult(0, 0, 0, 0, 0, 1, TimeSpan.Zero), null, null,
                 context.CurrentUtcDateTime - startTime);
         }
 
-        // Step 2: Run video generation if crawl produced new items
-        VideoGenerationResult? videoResult = null;
+        SocialPostGenerationResult? socialPostResult = null;
+        DailyVideoResult? dailyVideoResult = null;
 
         if (crawlResult.Persisted > 0)
         {
+            // Step 2: Publish social posts for the top stories
             try
             {
-                videoResult = await context.CallSubOrchestratorAsync<VideoGenerationResult>(
-                    nameof(VideoGeneration.Orchestrator.VideoGenerationOrchestrator), (object?)null);
+                socialPostResult = await context.CallSubOrchestratorAsync<SocialPostGenerationResult>(
+                    nameof(SocialPostGeneration.Orchestrator.SocialPostOrchestrator), (object?)null);
 
                 logger.LogInformation(
-                    "Video generation completed. Videos: {Videos}, Published: {Published}",
-                    videoResult.VideosGenerated, videoResult.Published);
+                    "Social post generation completed. PostsPublished: {PostsPublished}",
+                    socialPostResult.PostsPublished);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Video generation failed, but crawl succeeded");
+                logger.LogError(ex, "Social post generation failed, but crawl succeeded");
             }
-        }
-        else
-        {
-            logger.LogInformation("No new items persisted, skipping video generation");
+
+            // Step 3: Generate the single daily video (independent of social posts)
+            try
+            {
+                dailyVideoResult = await context.CallSubOrchestratorAsync<DailyVideoResult>(
+                    nameof(DailyVideo.Orchestrator.DailyVideoOrchestrator), (object?)null);
+
+                logger.LogInformation(
+                    "Daily video completed. VideoPublished: {VideoPublished}",
+                    dailyVideoResult.VideoPublished);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Daily video generation failed, but earlier stages succeeded");
+            }
         }
 
         var duration = context.CurrentUtcDateTime - startTime;
 
         logger.LogInformation("Daily pipeline completed in {Duration}", duration);
 
-        return new DailyPipelineResult(crawlResult, videoResult, duration);
+        return new DailyPipelineResult(crawlResult, socialPostResult, dailyVideoResult, duration);
     }
 }

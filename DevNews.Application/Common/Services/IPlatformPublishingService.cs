@@ -1,6 +1,6 @@
 using DevNews.Application.Common.Models;
 using DevNews.Domain.Common;
-using DevNews.Domain.ShortVideo.Enums;
+using DevNews.Domain.Common.Enums;
 
 namespace DevNews.Application.Common.Services;
 

@@ -61,7 +61,7 @@ public class AiDuplicationServiceTests
 
     private void SetupAiResponse(string json)
     {
-        _aiService.GenerateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _aiService.GenerateAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ResultResponse<string>.Success(json));
     }
 
@@ -75,7 +75,7 @@ public class AiDuplicationServiceTests
 
         Assert.True(result.IsSuccess);
         Assert.False(result.Data);
-        await _aiService.DidNotReceive().GenerateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _aiService.DidNotReceive().GenerateAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class AiDuplicationServiceTests
     public async Task IsDuplicateAsync_AiServiceFails_FailsOpenReturnsFalse()
     {
         SetupRepositoryWithArticles();
-        _aiService.GenerateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _aiService.GenerateAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(ResultResponse<string>.Failure("API error"));
         var article = CreateArticle(DateTimeOffset.UtcNow);
 

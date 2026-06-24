@@ -32,15 +32,15 @@ Deploy is CI-only: push to `main` → dev; manual `workflow_dispatch` → prod. 
   - `DevNews.Functions` — HTTP endpoints + Durable orchestrators; DI wired in `Program.cs` via `AddApplicationServices` + `AddInfrastructureServices`
 - Value objects enforce invariants: `NewsTitle`, `NewsUrl`, `NewsSummary`, `NewsCategory`, `RelevanceScore`.
 - Mediator pipeline behaviours: logging, FluentValidation, performance, exception handling.
-- Cosmos: database `dev-news-db`, containers `news-items` and `short-videos` (partition key `/Key`).
-- Durable pipelines: `DailyPipelineOrchestrator` (timer `%DailyPipelineSchedule%` ~06:00 UTC + manual) → `NightlyCrawlOrchestrator` (discover → curate → dedupe → persist, relevance ≥ 50) → conditionally `VideoGenerationOrchestrator` (select score 85+, ≤5 → script → validate → Creatomate render → **publish fan-out to YouTube + LinkedIn** → persist). There is no separate "social posts" orchestrator — publishing is the fan-out step inside video generation.
-- Endpoints: 3 **Anonymous** GET news endpoints (`GetCategories`, `GetNewsById`, `GetNewsByCategory`); 6 **Function-key** Durable triggers (pipeline / crawl / video-generation start + status).
+- Cosmos: database `dev-news-db`, containers `news-items`, `short-videos`, and `text-posts` (partition key `/Key`).
+- Durable pipelines: `DailyPipelineOrchestrator` (timer `%DailyPipelineSchedule%` ~06:00 UTC + manual) → `NightlyCrawlOrchestrator` (discover → curate → dedupe → persist, relevance ≥ 50) → `SocialPostOrchestrator` (select score 85+ → per-article social post via Haiku, validated against `SocialPostText` **before** publish → publish to LinkedIn → persist to `text-posts` as Published/Failed) → `DailyVideoOrchestrator` (select the day's top items, independent of social dedup → **one** combined script → validate → Creatomate render → **publish fan-out to YouTube + LinkedIn** → persist `ShortVideo`). The legacy per-article `VideoGenerationOrchestrator` remains behind the `/video-generation` trigger.
+- Endpoints: 3 **Anonymous** GET news endpoints (`GetCategories`, `GetNewsById`, `GetNewsByCategory`); **Function-key** Durable triggers (start + status) for `pipeline` / `crawl` / `social-posts` / `daily-video` / `video-generation`.
 - Rate limiting: `RateLimitingMiddleware` (registered via `UseMiddleware` in `Program.cs`) — per-IP fixed window 60/min, applies only to the 3 anonymous GETs, returns 429 + `Retry-After`.
 
 ## Conventions
 
 - JSON: camelCase, null values omitted (configured in `Program.cs`).
-- Categories: fixed 1-based `CategoryEnum`, 7 values in priority order — `AiModelsAndApis`, `AiDeveloperTools`, `AgentsAndFrameworks`, `AiEngineering`, `AiSafetyAndSecurity`, `InfrastructureAndCloud`, `OpenSourceAndCommunity`.
+- Categories: fixed 1-based `CategoryEnum`, 5 values in priority order — `AiModelsAndApis`, `AiDeveloperTools`, `AgentsAndFrameworks`, `AiEngineering`, `AiSafetyAndSecurity`.
 - `SeverityEnum`: Critical/High/Medium/Low (security items only). `Platform`: YouTube, LinkedIn.
 - Mediator is source-generated; `MSG0005` is suppressed (domain events raised, not yet dispatched).
 

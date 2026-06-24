@@ -1,24 +1,26 @@
 # DevNews Backend
 
-> Serverless C# backend that crawls developer news, curates it with AI, and turns the best stories into short-form videos.
+> Serverless C# backend that crawls developer news, curates it with AI, and turns the best stories into LinkedIn posts and a daily short-form video.
 
-DevNews Backend is an Azure Functions app (.NET 10 isolated worker). It ingests RSS feeds, uses Anthropic Claude to summarize, categorize, score, and de-duplicate articles, and stores them in Cosmos DB. A daily [Durable Functions](https://learn.microsoft.com/azure/azure-functions/durable/) pipeline then renders short videos with Creatomate and publishes them to YouTube and LinkedIn. A small public read API serves the curated news to the frontend.
+DevNews Backend is an Azure Functions app (.NET 10 isolated worker). It ingests RSS feeds, uses Anthropic Claude to summarize, categorize, score, and de-duplicate articles, and stores them in Cosmos DB. A daily [Durable Functions](https://learn.microsoft.com/azure/azure-functions/durable/) pipeline then publishes the top stories as individual LinkedIn posts and renders a single daily video with Creatomate for YouTube and LinkedIn. A small public read API serves the curated news to the frontend.
 
 Part of the **DevNews** product, alongside the web frontend ([`dev-news-frontend`](https://github.com/Steinklo/dev-news-frontend)) and infrastructure-as-code ([`dev-news-iac`](https://github.com/Steinklo/dev-news-iac)).
 
 ## How it works
 
-A single orchestrator runs the daily pipeline on a timer (06:00 UTC): crawl and curate news, then generate videos from the highest-scoring items.
+A single orchestrator runs the daily pipeline on a timer (06:00 UTC): crawl and curate news, publish the top stories as social posts, then generate one daily video.
 
 ```mermaid
 flowchart LR
     Timer["Timer (06:00 UTC)"] --> DP[Daily pipeline]
     DP --> Crawl[Crawl & AI-curate]
-    Crawl --> Video[Generate & publish videos]
+    Crawl --> Social[Social posts]
+    Social --> Video[Daily video]
 ```
 
-- **Crawl** — discover RSS articles → Claude summary, category & relevance score → keep relevance ≥ 50 → AI de-duplication → persist to Cosmos DB.
-- **Video** — select up to 5 items scoring 85+ → Claude script → validate → Creatomate render → Azure Blob → publish to YouTube + LinkedIn.
+- **Crawl** — discover articles from 22 RSS feeds → Claude (Sonnet) summary, category & relevance score → keep relevance ≥ 50 → AI (Haiku) de-duplication → persist to Cosmos DB.
+- **Social posts** — select items scoring 85+ → Claude (Haiku) writes a post per article → publish to LinkedIn with the source link → persist to the `text-posts` container.
+- **Daily video** — combine the top items into one script (Haiku) → validate (quality ≥ 70) → Creatomate render (DALL·E backgrounds + Azure TTS) → Azure Blob → publish to YouTube + LinkedIn → persist to `short-videos`.
 
 ## Quick start
 
@@ -42,9 +44,11 @@ Public read endpoints are anonymous and rate-limited to **60 requests/min per IP
 | `GET` | `/api/v1/news/category/{category}?year_month=YYYY-MM&limit=N` | Anonymous |
 | `POST` / `GET` | `/api/v1/pipeline/start` · `/pipeline/status/{instanceId}` | Function key |
 | `POST` / `GET` | `/api/v1/crawl/start` · `/crawl/status/{instanceId}` | Function key |
+| `POST` / `GET` | `/api/v1/social-posts/start` · `/social-posts/status/{instanceId}` | Function key |
+| `POST` / `GET` | `/api/v1/daily-video/start` · `/daily-video/status/{instanceId}` | Function key |
 | `POST` / `GET` | `/api/v1/video-generation/start` · `/video-generation/status/{instanceId}` | Function key |
 
-`limit` defaults to 50 (max 100); `year_month` defaults to the current month. Categories: AI Models & APIs, AI Developer Tools, Agents & Frameworks, AI Engineering, AI Safety & Security, Infrastructure & Cloud, Open Source & Community.
+`limit` defaults to 50 (max 100); `year_month` defaults to the current month. `social-posts/start` publishes the day's social posts; `daily-video/start` renders the single daily video; `video-generation/start` is the legacy per-article video path. Categories: AI Models & APIs, AI Developer Tools, Agents & Frameworks, AI Engineering, AI Safety & Security.
 
 ## Prerequisites & configuration
 

@@ -4,19 +4,7 @@ namespace DevNews.Application.Common.Repositories;
 
 public interface IShortVideoRepository
 {
-    Task<ResultResponse<Domain.ShortVideo.ShortVideo?>> GetByIdAsync(
-        Guid id,
-        CancellationToken cancellationToken = default);
-
-    Task<ResultResponse<Domain.ShortVideo.ShortVideo?>> GetByNewsItemIdAsync(
-        Guid newsItemId,
-        CancellationToken cancellationToken = default);
-
     Task<ResultResponse<Domain.ShortVideo.ShortVideo>> AddAsync(
-        Domain.ShortVideo.ShortVideo shortVideo,
-        CancellationToken cancellationToken = default);
-
-    Task<ResultResponse<Domain.ShortVideo.ShortVideo>> UpdateAsync(
         Domain.ShortVideo.ShortVideo shortVideo,
         CancellationToken cancellationToken = default);
 

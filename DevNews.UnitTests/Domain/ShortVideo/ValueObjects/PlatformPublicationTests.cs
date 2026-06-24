@@ -1,4 +1,4 @@
-using DevNews.Domain.ShortVideo.Enums;
+using DevNews.Domain.Common.Enums;
 using DevNews.Domain.ShortVideo.ValueObjects;
 
 namespace DevNews.UnitTests.Domain.ShortVideo.ValueObjects;

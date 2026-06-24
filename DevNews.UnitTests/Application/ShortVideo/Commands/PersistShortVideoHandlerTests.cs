@@ -1,7 +1,7 @@
 using DevNews.Application.Common.Repositories;
 using DevNews.Application.ShortVideo.Commands;
 using DevNews.Domain.Common;
-using DevNews.Domain.ShortVideo.Enums;
+using DevNews.Domain.Common.Enums;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 
