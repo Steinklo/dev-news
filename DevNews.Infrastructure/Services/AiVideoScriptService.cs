@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using DevNews.Application.Common.Services;
-using DevNews.Application.Common.Models;
 using DevNews.Domain.Common;
 
 namespace DevNews.Infrastructure.Services;
@@ -31,26 +30,6 @@ public class AiVideoScriptService(IAiService aiService) : IVideoScriptService
         }
     }
 
-    public async Task<ResultResponse<string>> GenerateDailyVideoScriptAsync(
-        IReadOnlyList<NewsArticleSummary> items,
-        CancellationToken ct = default)
-    {
-        try
-        {
-            var prompt = BuildDailyVideoScriptPrompt(items);
-
-            var aiResponse = await aiService.GenerateAsync(prompt, ct: ct);
-            if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
-                return ResultResponse<string>.Failure(aiResponse.ErrorMessage);
-
-            return ParseResponse(aiResponse.Data);
-        }
-        catch (Exception ex)
-        {
-            return ResultResponse<string>.Failure($"Video script generation failed: {ex.Message}");
-        }
-    }
-
     private static string BuildPrompt(string title, string summary, string category)
     {
         var sb = new StringBuilder();
@@ -74,38 +53,6 @@ public class AiVideoScriptService(IAiService aiService) : IVideoScriptService
         sb.AppendLine("{");
         sb.AppendLine("  \"isSuccess\": true,");
         sb.AppendLine("  \"script\": \"the narration script text\"");
-        sb.AppendLine("}");
-
-        return sb.ToString();
-    }
-
-    private static string BuildDailyVideoScriptPrompt(IReadOnlyList<NewsArticleSummary> items)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("Write a 30-second narration script summarizing today's top AI developer news.");
-        sb.AppendLine();
-        sb.AppendLine("Rules:");
-        sb.AppendLine("- Cover the key highlights from all articles in a cohesive narrative");
-        sb.AppendLine("- 200-800 characters, spoken tone");
-        sb.AppendLine("- Start with an attention-grabbing hook");
-        sb.AppendLine("- End with a key takeaway");
-        sb.AppendLine("- No emojis, no markdown");
-        sb.AppendLine();
-        sb.AppendLine("Articles:");
-
-        for (var i = 0; i < items.Count; i++)
-        {
-            var item = items[i];
-            sb.AppendLine($"{i + 1}. Title: {item.Title}");
-            sb.AppendLine($"   Category: {item.Category}");
-            sb.AppendLine($"   Summary: {item.Summary}");
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("Return JSON only:");
-        sb.AppendLine("{");
-        sb.AppendLine("  \"isSuccess\": true,");
-        sb.AppendLine("  \"script\": \"the full narration script\"");
         sb.AppendLine("}");
 
         return sb.ToString();

@@ -4,7 +4,6 @@ using System.Text.Json;
 using DevNews.Application.Common.Models;
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
-using DevNews.Domain.Common.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -36,12 +35,8 @@ public class SocialPostPublisher : ISocialPostPublisher
 
     public async Task<ResultResponse<PlatformPublishResult>> PublishTextAsync(
         string text,
-        Platform platform,
         CancellationToken ct = default)
     {
-        if (platform != Platform.LinkedIn)
-            return ResultResponse<PlatformPublishResult>.Failure("Platform not supported for text posts");
-
         try
         {
             var postBody = new

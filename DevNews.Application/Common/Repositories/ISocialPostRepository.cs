@@ -9,10 +9,11 @@ public interface ISocialPostRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Returns NewsItem IDs that already have social posts for the given date.
-    /// Used to avoid duplicate social post generation.
+    /// Returns NewsItem IDs that already have a social post in the given month's partition,
+    /// regardless of status. Used to avoid duplicate social post generation across the month
+    /// (not just the current calendar day).
     /// </summary>
-    Task<ResultResponse<IEnumerable<Guid>>> GetNewsItemIdsWithPostsAsync(
-        DateOnly date,
+    Task<ResultResponse<IEnumerable<Guid>>> GetNewsItemIdsWithPostsThisMonthAsync(
+        DateOnly month,
         CancellationToken cancellationToken = default);
 }

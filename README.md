@@ -44,10 +44,11 @@ Public read endpoints are anonymous and rate-limited to **60 requests/min per IP
 | `GET` | `/api/v1/news/category/{category}?year_month=YYYY-MM&limit=N` | Anonymous |
 | `POST` / `GET` | `/api/v1/pipeline/start` · `/pipeline/status/{instanceId}` | Function key |
 | `POST` / `GET` | `/api/v1/crawl/start` · `/crawl/status/{instanceId}` | Function key |
-| `POST` / `GET` | `/api/v1/social-posts/generate` · `/social-posts/status/{instanceId}` | Function key |
+| `POST` / `GET` | `/api/v1/social-posts/start` · `/social-posts/status/{instanceId}` | Function key |
+| `POST` / `GET` | `/api/v1/daily-video/start` · `/daily-video/status/{instanceId}` | Function key |
 | `POST` / `GET` | `/api/v1/video-generation/start` · `/video-generation/status/{instanceId}` | Function key |
 
-`limit` defaults to 50 (max 100); `year_month` defaults to the current month. `social-posts/generate` runs the social-post + daily-video stage; `video-generation/start` is the legacy per-article video path. Categories: AI Models & APIs, AI Developer Tools, Agents & Frameworks, AI Engineering, AI Safety & Security.
+`limit` defaults to 50 (max 100); `year_month` defaults to the current month. `social-posts/start` publishes the day's social posts; `daily-video/start` renders the single daily video; `video-generation/start` is the legacy per-article video path. Categories: AI Models & APIs, AI Developer Tools, Agents & Frameworks, AI Engineering, AI Safety & Security.
 
 ## Prerequisites & configuration
 

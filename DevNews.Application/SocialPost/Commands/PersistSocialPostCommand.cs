@@ -10,7 +10,8 @@ public record PersistSocialPostCommand(
     string Content,
     string? SourceUrl,
     string? ExternalId,
-    string? PublishedUrl) : IRequest<ResultResponse<Guid>>;
+    string? PublishedUrl,
+    bool Published) : IRequest<ResultResponse<Guid>>;
 
 public class PersistSocialPostHandler(
     ISocialPostRepository repository,
@@ -33,8 +34,10 @@ public class PersistSocialPostHandler(
 
         var socialPost = socialPostResult.Data!;
 
-        if (request.ExternalId != null && request.PublishedUrl != null)
+        if (request.Published && request.ExternalId != null && request.PublishedUrl != null)
             socialPost.MarkPublished(request.ExternalId, request.PublishedUrl);
+        else
+            socialPost.MarkFailed();
 
         var persistResult = await repository.AddAsync(socialPost, cancellationToken);
 
@@ -44,7 +47,7 @@ public class PersistSocialPostHandler(
             return ResultResponse<Guid>.Failure(persistResult.ErrorMessage);
         }
 
-        logger.LogInformation("Persisted SocialPost {Id}", persistResult.Data!.Id);
+        logger.LogInformation("Persisted SocialPost {Id} with status {Status}", persistResult.Data!.Id, socialPost.Status);
         return ResultResponse<Guid>.Success(persistResult.Data.Id);
     }
 }

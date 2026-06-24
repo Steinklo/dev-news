@@ -1,9 +1,6 @@
-using DevNews.Application.Common.Models;
-using DevNews.Application.ShortVideo.Commands;
 using DevNews.Application.SocialPost.Commands;
 using DevNews.Application.SocialPost.Dtos;
 using DevNews.Application.SocialPost.Queries;
-using DevNews.Domain.Common.Enums;
 using Mediator;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -58,39 +55,20 @@ public class Activities
 
     [Function(nameof(PublishSocialPostActivity))]
     public async Task<SocialPostPublishOutput?> PublishSocialPostActivity(
-        [ActivityTrigger] SocialPostPublishInput input,
+        [ActivityTrigger] string text,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Activity: Publishing social post to {Platform}", input.Platform);
+        _logger.LogInformation("Activity: Publishing social post to LinkedIn");
 
-        var result = await _mediator.Send(new PublishSocialPostCommand(input.Text, input.Platform), cancellationToken);
+        var result = await _mediator.Send(new PublishSocialPostCommand(text), cancellationToken);
 
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("Social post publishing to {Platform} failed: {Error}", input.Platform, result.ErrorMessage);
+            _logger.LogWarning("Social post publishing failed: {Error}", result.ErrorMessage);
             return null;
         }
 
         return new SocialPostPublishOutput(result.Data!.ExternalId, result.Data.PublishedUrl);
-    }
-
-[Function(nameof(GenerateDailyVideoScriptActivity))]
-    public async Task<string?> GenerateDailyVideoScriptActivity(
-        [ActivityTrigger] List<SocialPostEligibleItem> items,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Activity: Generating daily video script for {Count} items", items.Count);
-
-        var summaries = items.Select(i => new NewsArticleSummary(i.Title, i.Summary, i.Category)).ToList();
-        var result = await _mediator.Send(new GenerateDailyVideoScriptCommand(summaries), cancellationToken);
-
-        if (!result.IsSuccess)
-        {
-            _logger.LogWarning("Daily video script generation failed: {Error}", result.ErrorMessage);
-            return null;
-        }
-
-        return result.Data;
     }
 
     [Function(nameof(PersistSocialPostActivity))]
@@ -101,7 +79,8 @@ public class Activities
         _logger.LogInformation("Activity: Persisting SocialPost for news item {NewsItemId}", input.NewsItemId);
 
         var result = await _mediator.Send(
-            new PersistSocialPostCommand(input.NewsItemId, input.Content, input.SourceUrl, input.ExternalId, input.PublishedUrl),
+            new PersistSocialPostCommand(
+                input.NewsItemId, input.Content, input.SourceUrl, input.ExternalId, input.PublishedUrl, input.Published),
             cancellationToken);
 
         if (!result.IsSuccess)

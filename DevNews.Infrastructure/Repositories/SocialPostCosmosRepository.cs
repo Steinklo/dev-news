@@ -32,21 +32,18 @@ public sealed class SocialPostCosmosRepository(CosmosClient client, string datab
         }
     }
 
-    public async Task<ResultResponse<IEnumerable<Guid>>> GetNewsItemIdsWithPostsAsync(
-        DateOnly date,
+    public async Task<ResultResponse<IEnumerable<Guid>>> GetNewsItemIdsWithPostsThisMonthAsync(
+        DateOnly month,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var partitionKey = $"textpost_{date:yyyy-MM}";
-            var dayStart = new DateTimeOffset(date, TimeOnly.MinValue, TimeSpan.Zero);
-            var dayEnd = dayStart.AddDays(1);
+            // One partition per month (textpost_yyyy-MM). Scanning the whole partition (rather than
+            // a single calendar day) prevents re-posting an item across the midnight boundary.
+            var partitionKey = $"textpost_{month:yyyy-MM}";
 
-            var query = new QueryDefinition(
-                "SELECT c.NewsItemId FROM c WHERE c.Key = @key AND c.CreatedAt >= @start AND c.CreatedAt < @end")
-                .WithParameter("@key", partitionKey)
-                .WithParameter("@start", dayStart)
-                .WithParameter("@end", dayEnd);
+            var query = new QueryDefinition("SELECT c.NewsItemId FROM c WHERE c.Key = @key")
+                .WithParameter("@key", partitionKey);
 
             var iterator = _container.GetItemQueryIterator<SocialPostDocument>(query,
                 requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(partitionKey) });
@@ -64,7 +61,7 @@ public sealed class SocialPostCosmosRepository(CosmosClient client, string datab
         catch (Exception ex)
         {
             return ResultResponse<IEnumerable<Guid>>.Failure(
-                $"Failed to fetch NewsItem IDs with posts for {date}: {ex.Message}");
+                $"Failed to fetch NewsItem IDs with posts for {month:yyyy-MM}: {ex.Message}");
         }
     }
 }

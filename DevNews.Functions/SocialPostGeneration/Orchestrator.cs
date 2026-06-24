@@ -1,8 +1,5 @@
-using DevNews.Application.Common.Models;
 using DevNews.Application.SocialPost.Dtos;
-using DevNews.Domain.Common.Enums;
 using DevNews.Functions.Common;
-using DevNews.Functions.VideoGeneration;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -36,23 +33,23 @@ public class Orchestrator
         catch (Exception ex)
         {
             logger.LogError(ex, "Social post selection failed");
-            return new SocialPostGenerationResult(0, 0, false, false, TimeSpan.Zero);
+            return new SocialPostGenerationResult(0, 0, TimeSpan.Zero);
         }
 
         if (eligibleItems.Count < MinItemsForSocialPosts)
         {
             logger.LogInformation("Not enough items for social posts ({Count} < {Min}), skipping",
                 eligibleItems.Count, MinItemsForSocialPosts);
-            return new SocialPostGenerationResult(eligibleItems.Count, 0, false, false,
-                context.CurrentUtcDateTime - startTime);
+            return new SocialPostGenerationResult(eligibleItems.Count, 0, context.CurrentUtcDateTime - startTime);
         }
 
-        // Step 2: For each article, generate social post, publish, and persist
+        // Step 2: For each article, generate (and validate) text, publish, and persist
         var postsPublished = 0;
 
         foreach (var item in eligibleItems)
         {
-            // Step 2a: Generate social post text
+            // Step 2a: Generate social post text — already validated against the SocialPostText
+            // invariant inside the handler, so anything that reaches here is safe to publish.
             var postText = await context.CallActivityAsync<string?>(
                 nameof(Activities.GenerateSocialPostActivity),
                 item,
@@ -62,20 +59,20 @@ public class Orchestrator
 
             if (postText == null)
             {
-                logger.LogWarning("Social post generation failed for {Title}, skipping", item.Title);
+                logger.LogWarning("Social post generation failed/invalid for {Title}, skipping", item.Title);
                 continue;
             }
 
             // Step 2b: Publish to LinkedIn
             var publishResult = await context.CallActivityAsync<SocialPostPublishOutput?>(
                 nameof(Activities.PublishSocialPostActivity),
-                new SocialPostPublishInput(postText, Platform.LinkedIn),
+                postText,
                 OrchestrationDefaults.RetryOptions);
 
             if (publishResult != null)
                 postsPublished++;
 
-            // Step 2c: Persist SocialPost
+            // Step 2c: Persist SocialPost (Published when the LinkedIn call succeeded, else Failed)
             await context.CallActivityAsync<Guid?>(
                 nameof(Activities.PersistSocialPostActivity),
                 new PersistSocialPostInput(
@@ -83,98 +80,19 @@ public class Orchestrator
                     postText,
                     item.SourceUrl,
                     publishResult?.ExternalId,
-                    publishResult?.PublishedUrl),
+                    publishResult?.PublishedUrl,
+                    publishResult != null),
                 OrchestrationDefaults.RetryOptions);
 
             await context.CreateTimer(context.CurrentUtcDateTime.AddSeconds(2), CancellationToken.None);
-        }
-
-        // Step 3: Video generation
-        var videoGenerated = false;
-        var videoPublished = false;
-
-        {
-            logger.LogInformation("Starting daily video generation");
-
-            // Step 3a: Generate video script from all articles
-            var script = await context.CallActivityAsync<string?>(
-                nameof(Activities.GenerateDailyVideoScriptActivity),
-                eligibleItems,
-                OrchestrationDefaults.RetryOptions);
-
-            await context.CreateTimer(context.CurrentUtcDateTime.AddSeconds(2), CancellationToken.None);
-
-            if (script != null)
-            {
-                // Step 3b: Validate script — use combined summaries for validation
-                var combinedSummary = string.Join("\n\n", eligibleItems.Select(i => $"{i.Title}: {i.Summary}"));
-                var validationResult = await context.CallActivityAsync<ScriptValidationResult?>(
-                    nameof(VideoGeneration.Activities.ValidateScriptActivity),
-                    new ScriptValidationInput(script, combinedSummary),
-                    OrchestrationDefaults.RetryOptions);
-
-                await context.CreateTimer(context.CurrentUtcDateTime.AddSeconds(2), CancellationToken.None);
-
-                if (validationResult is { IsValid: true, QualityScore: >= 70 })
-                {
-                    // Step 3c: Generate video
-                    var firstItem = eligibleItems[0];
-                    var videoResult = await context.CallActivityAsync<GeneratedVideoOutput?>(
-                        nameof(VideoGeneration.Activities.GenerateVideoActivity),
-                        new VideoGenerationInput(firstItem.NewsItemId, script, "AI Developer News Daily"),
-                        OrchestrationDefaults.RetryOptions);
-
-                    if (videoResult != null)
-                    {
-                        videoGenerated = true;
-
-                        // Step 3d: Publish video to platforms
-                        var publishTasks = new[] { Platform.YouTube, Platform.LinkedIn }
-                            .Select(platform => context.CallActivityAsync<PublishOutput?>(
-                                nameof(VideoGeneration.Activities.PublishVideoActivity),
-                                new PublishInput(
-                                    videoResult.VideoUrl,
-                                    "AI Developer News Daily",
-                                    script,
-                                    Array.Empty<string>(),
-                                    platform),
-                                OrchestrationDefaults.RetryOptions));
-
-                        var publishResults = await Task.WhenAll(publishTasks);
-                        var successfulPublications = publishResults
-                            .Where(r => r != null)
-                            .Cast<PublishOutput>()
-                            .ToList();
-
-                        videoPublished = successfulPublications.Count > 0;
-
-                        // Step 3e: Persist ShortVideo
-                        await context.CallActivityAsync<Guid?>(
-                            nameof(VideoGeneration.Activities.PersistShortVideoActivity),
-                            new PersistVideoInput(
-                                firstItem.NewsItemId,
-                                script,
-                                videoResult.DurationSeconds,
-                                videoResult.VideoUrl,
-                                successfulPublications),
-                            OrchestrationDefaults.RetryOptions);
-                    }
-                }
-                else
-                {
-                    logger.LogWarning(
-                        "Video script rejected: IsValid={IsValid}, QualityScore={Score}, Reason={Reason}",
-                        validationResult?.IsValid, validationResult?.QualityScore, validationResult?.Reason);
-                }
-            }
         }
 
         var duration = context.CurrentUtcDateTime - startTime;
 
         logger.LogInformation(
-            "Social post orchestration completed. Items: {Items}, PostsPublished: {Posts}, VideoGenerated: {Video}, VideoPublished: {VideoPublished}, Duration: {Duration}",
-            eligibleItems.Count, postsPublished, videoGenerated, videoPublished, duration);
+            "Social post orchestration completed. Items: {Items}, PostsPublished: {Posts}, Duration: {Duration}",
+            eligibleItems.Count, postsPublished, duration);
 
-        return new SocialPostGenerationResult(eligibleItems.Count, postsPublished, videoGenerated, videoPublished, duration);
+        return new SocialPostGenerationResult(eligibleItems.Count, postsPublished, duration);
     }
 }

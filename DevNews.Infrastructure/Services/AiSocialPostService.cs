@@ -36,7 +36,7 @@ public class AiSocialPostService(IAiService aiService) : ISocialPostGenerationSe
         sb.AppendLine("Rules:");
         sb.AppendLine("- Include the article title and a 1-2 sentence hook about why it matters");
         sb.AppendLine("- Include the source URL at the end");
-        sb.AppendLine("- 200-500 characters total, plain text");
+        sb.AppendLine("- 300-1200 characters total, plain text");
         sb.AppendLine("- No emojis, no markdown");
         sb.AppendLine("- Professional but engaging tone");
         sb.AppendLine();

@@ -24,12 +24,14 @@ public class SelectSocialPostEligibleItemsHandler(
         logger.LogDebug("Selecting social-post-eligible items (min score: {MinScore}, max: {MaxItems})",
             request.MinRelevanceScore, request.MaxItems);
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var since = DateTimeOffset.UtcNow.AddHours(-24);
         var now = DateTimeOffset.UtcNow;
 
-        // Get IDs of news items that already have social posts today
-        var existingResult = await socialPostRepository.GetNewsItemIdsWithPostsAsync(today, cancellationToken);
+        // Dedup against every post made this month (not just today), so an item posted late
+        // yesterday is not re-posted early today. Known minor edge: at a month boundary an item
+        // posted on the last day can repost on the first (different partition) — acceptable.
+        var month = DateOnly.FromDateTime(DateTime.UtcNow);
+        var existingResult = await socialPostRepository.GetNewsItemIdsWithPostsThisMonthAsync(month, cancellationToken);
         var existingIds = existingResult.IsSuccess
             ? existingResult.Data!.ToHashSet()
             : new HashSet<Guid>();
