@@ -23,12 +23,12 @@ public class YouTubePublishingService
     {
         _httpClient = httpClient;
         _logger = logger;
-        _clientId = configuration["YouTubeClientId"]
-            ?? throw new InvalidOperationException("YouTubeClientId is not configured");
-        _clientSecret = configuration["YouTubeClientSecret"]
-            ?? throw new InvalidOperationException("YouTubeClientSecret is not configured");
-        _refreshToken = configuration["YouTubeRefreshToken"]
-            ?? throw new InvalidOperationException("YouTubeRefreshToken is not configured");
+        // Read lazily — YouTube is optional. Missing credentials must NOT throw here, or the
+        // PlatformPublishingRouter (which constructs both publishers) fails to build and takes
+        // LinkedIn video publishing down with it. We degrade gracefully in PublishAsync instead.
+        _clientId = configuration["YouTubeClientId"] ?? "";
+        _clientSecret = configuration["YouTubeClientSecret"] ?? "";
+        _refreshToken = configuration["YouTubeRefreshToken"] ?? "";
     }
 
     public async Task<ResultResponse<PlatformPublishResult>> PublishAsync(
@@ -38,6 +38,14 @@ public class YouTubePublishingService
         string[] tags,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(_clientId)
+            || string.IsNullOrWhiteSpace(_clientSecret)
+            || string.IsNullOrWhiteSpace(_refreshToken))
+        {
+            _logger.LogInformation("YouTube publishing skipped — YouTube credentials are not configured");
+            return ResultResponse<PlatformPublishResult>.Failure("YouTube credentials are not configured");
+        }
+
         try
         {
             // Get fresh access token
