@@ -1,62 +1,58 @@
-# DevNews Backend
+# CLAUDE.md
 
-Serverless C# backend for an AI developer news aggregator and short video generator. Azure Functions V4 (.NET 10 isolated worker) with Cosmos DB and Anthropic Claude AI.
+Serverless C# backend for an AI developer-news aggregator + short-video generator. Azure Functions V4 (.NET 10 isolated worker), Cosmos DB, Anthropic Claude. Siblings: `dev-news-frontend`, `dev-news-iac`.
+
+## Tech stack
+
+- .NET 10 (`net10.0`), Azure Functions V4 **isolated worker** with ASP.NET Core integration (`Worker` 2.51.0, `Worker.Sdk` 2.0.7)
+- Durable Functions (`Extensions.DurableTask` 1.16.3), Timer trigger (`Extensions.Timer` 4.3.1)
+- Mediator 3.0.2 — **source-generated CQRS, NOT MediatR** (`martinothamar/Mediator`)
+- FluentValidation 12.1.1; Cosmos DB SDK 3.58.0; Azure Blob 12.27.0
+- Anthropic SDK 12.13.0; SmartReader 0.11.0 (article extraction); `System.ServiceModel.Syndication` (RSS)
+- OpenTelemetry → Azure Monitor (`Azure.Monitor.OpenTelemetry.AspNetCore` 1.4.0)
+- Tests: xUnit 2.9.3, NSubstitute 5.3.0
 
 ## Commands
 
 ```bash
-dotnet restore DevNews.sln                                    # Restore
-dotnet build DevNews.sln --configuration Release              # Build
-dotnet test DevNews.UnitTests/DevNews.UnitTests.csproj        # Test
-cd DevNews.Functions && func start                            # Run locally
+dotnet restore DevNews.sln
+dotnet build DevNews.sln --configuration Release
+dotnet test DevNews.UnitTests/DevNews.UnitTests.csproj
+cd DevNews.Functions && func start          # serves http://localhost:7071
 ```
 
-## Project Structure
+Deploy is CI-only: push to `main` → dev; manual `workflow_dispatch` → prod. Do not deploy by hand. Local `func start` needs Azurite (or a storage account) for Durable Functions; secrets go in `local.settings.json` (gitignored).
 
-```
-DevNews.Domain/           # Entities, value objects, enums, domain events (depends only on Mediator.Abstractions)
-DevNews.Application/      # Commands, queries, validators, service interfaces (Mediator CQRS)
-DevNews.Infrastructure/   # Cosmos DB repos, Anthropic AI services, RSS crawling, video generation
-DevNews.Functions/        # Azure Functions entry point (HTTP endpoints + Durable Functions)
-DevNews.UnitTests/        # xUnit tests
-```
+## Architecture & key patterns
 
-**Dependency flow**: Functions → Application + Infrastructure → Domain
-
-## Key Patterns
-
-- **Clean Architecture / DDD**: Domain has no external dependencies; Application defines interfaces; Infrastructure implements them
-- **CQRS via Mediator**: Source-generated Mediator for commands and queries (not MediatR)
-- **Pipeline behaviours**: Logging, validation (FluentValidation), performance tracking, exception handling
-- **Value objects**: NewsTitle, NewsUrl, NewsSummary, NewsCategory, RelevanceScore — enforce invariants at domain level
-- **Durable Functions orchestrators**: Nightly crawl pipeline (discover → curate → filter low relevance → deduplicate → persist), short video generation pipeline
-
-## API Endpoints
-
-- `GET /api/v1/news/categories` → `CategoriesResponse`
-- `GET /api/v1/news/category/{category}?year_month=YYYY-MM` → `NewsByCategoryResponse`
-- `GET /api/v1/news/{id}` → single `NewsItem` by GUID
-
-## Infrastructure Services
-
-- `AnthropicAiService` — Claude API wrapper
-- `AiCrawlService` — RSS feed discovery + article extraction (SmartReader)
-- `AiCurationService` — AI-generated summaries, categories, relevance scores
-- `AIDuplicationService` — AI-powered deduplication
-- `NewsItemCosmosRepository` — Cosmos DB persistence
-- `AiVideoScriptService` — AI-generated video scripts
-- `AiVideoScriptValidationService` — script validation
-- `CreatomateVideoGenerationService` — programmatic video rendering via Creatomate (JSON-source with DALL-E background, Azure TTS voiceover)
-- `AzureBlobVideoStorageService` — video storage in Azure Blob
-- `YouTubePublishingService` — publish to YouTube
-- `LinkedInPublishingService` — publish to LinkedIn
-- `PlatformPublishingRouter` — routes publishing to correct platform
-- `ShortVideoCosmosRepository` — Cosmos DB persistence for videos
+- Clean Architecture / DDD. Flow: **Functions → Application + Infrastructure → Domain**.
+  - `DevNews.Domain` — entities, value objects, enums (depends only on `Mediator.Abstractions`)
+  - `DevNews.Application` — Mediator commands/queries/validators, service interfaces
+  - `DevNews.Infrastructure` — Cosmos repos, Anthropic, RSS crawl, video, publishing
+  - `DevNews.Functions` — HTTP endpoints + Durable orchestrators; DI wired in `Program.cs` via `AddApplicationServices` + `AddInfrastructureServices`
+- Value objects enforce invariants: `NewsTitle`, `NewsUrl`, `NewsSummary`, `NewsCategory`, `RelevanceScore`.
+- Mediator pipeline behaviours: logging, FluentValidation, performance, exception handling.
+- Cosmos: database `dev-news-db`, containers `news-items`, `short-videos`, and `text-posts` (partition key `/Key`).
+- Durable pipelines: `DailyPipelineOrchestrator` (timer `%DailyPipelineSchedule%` ~06:00 UTC + manual) → `NightlyCrawlOrchestrator` (discover → curate → dedupe → persist, relevance ≥ 50) → `SocialPostOrchestrator` (select score 85+ → per-article social post via Haiku → publish to LinkedIn → persist to `text-posts`; then build **one** daily video script → validate → Creatomate render → **publish fan-out to YouTube + LinkedIn** → persist `ShortVideo`). The legacy per-article `VideoGenerationOrchestrator` remains behind the `/video-generation` trigger.
+- Endpoints: 3 **Anonymous** GET news endpoints (`GetCategories`, `GetNewsById`, `GetNewsByCategory`); **Function-key** Durable triggers (start + status) for `pipeline` / `crawl` / `social-posts` / `video-generation`.
+- Rate limiting: `RateLimitingMiddleware` (registered via `UseMiddleware` in `Program.cs`) — per-IP fixed window 60/min, applies only to the 3 anonymous GETs, returns 429 + `Retry-After`.
 
 ## Conventions
 
-- JSON serialization: camelCase, null values omitted
-- Nullable reference types enabled throughout
-- Categories are a fixed enum (5 values, AI-focused, ordered by priority): AiModelsAndApis, AiDeveloperTools, AgentsAndFrameworks, AiEngineering, AiSafetyAndSecurity
-- Severity levels: Critical, High, Medium, Low (security items only)
-- CI: GitHub Actions with OIDC auth, deploy dev on push to main, prod via manual workflow_dispatch
+- JSON: camelCase, null values omitted (configured in `Program.cs`).
+- Categories: fixed 1-based `CategoryEnum`, 5 values in priority order — `AiModelsAndApis`, `AiDeveloperTools`, `AgentsAndFrameworks`, `AiEngineering`, `AiSafetyAndSecurity`.
+- `SeverityEnum`: Critical/High/Medium/Low (security items only). `Platform`: YouTube, LinkedIn.
+- Mediator is source-generated; `MSG0005` is suppressed (domain events raised, not yet dispatched).
+
+## Gotchas
+
+- Telemetry is **OpenTelemetry → Azure Monitor**, not the classic Application Insights SDK (incompatible with .NET 10 isolated worker). Do not re-add `Microsoft.ApplicationInsights*` SDK packages.
+- The rate limiter is in-memory, so the limit is enforced **per worker instance, not globally**.
+- `func start` requires a storage backend (Azurite / `UseDevelopmentStorage=true` or a real account) for Durable Functions.
+- Never commit secrets: `.gitignore` excludes `local.settings.json`, `appsettings.json`, `appsettings.Development.json`. Deployed config lives in Azure App Settings / Key Vault.
+- Don't edit `obj/` / `bin/` or Mediator source-generated output. CI ignores `**/*.md` and `.gitignore` for build/deploy triggers.
+
+## Further context
+
+- `README.md` — pipeline overview, API table, configuration.
+- Siblings: [`dev-news-frontend`](https://github.com/Steinklo/dev-news-frontend), [`dev-news-iac`](https://github.com/Steinklo/dev-news-iac).
