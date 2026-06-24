@@ -1,8 +1,10 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using DevNews.Application.Common.Services;
 using DevNews.Application.SocialPost.Dtos;
 using DevNews.Domain.Common;
+using DevNews.Domain.SocialPost.ValueObjects;
 
 namespace DevNews.Infrastructure.Services;
 
@@ -20,12 +22,43 @@ public class AiSocialPostService(IAiService aiService) : ISocialPostGenerationSe
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
                 return ResultResponse<string>.Failure(aiResponse.ErrorMessage);
 
-            return ParseSocialPostResponse(aiResponse.Data);
+            var parsed = ParseSocialPostResponse(aiResponse.Data);
+            if (!parsed.IsSuccess)
+                return parsed;
+
+            // Safety net: the model occasionally overshoots — trim to fit so we never drop a post
+            // purely for length (keeps the trailing URL intact).
+            return ResultResponse<string>.Success(TruncateToFit(parsed.Data!, SocialPostText.MaxLength));
         }
         catch (Exception ex)
         {
             return ResultResponse<string>.Failure($"Social post generation failed: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Ensures the post is at most <paramref name="max"/> characters, preserving a trailing URL.
+    /// </summary>
+    internal static string TruncateToFit(string text, int max)
+    {
+        text = text.Trim();
+        if (text.Length <= max)
+            return text;
+
+        var match = Regex.Match(text, @"https?://\S+");
+        if (match.Success)
+        {
+            var url = match.Value;
+            var body = (text[..match.Index] + text[(match.Index + match.Length)..]).Trim();
+            var budget = max - url.Length - 2; // room for a space + ellipsis
+            if (budget <= 0)
+                return url.Length <= max ? url : url[..max];
+
+            var trimmedBody = body.Length > budget ? body[..budget].TrimEnd() + "…" : body;
+            return $"{trimmedBody} {url}";
+        }
+
+        return text[..(max - 1)].TrimEnd() + "…";
     }
 
     private static string BuildSocialPostPrompt(SocialPostEligibleItem item)

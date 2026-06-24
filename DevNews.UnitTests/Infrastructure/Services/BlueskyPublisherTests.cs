@@ -31,4 +31,24 @@ public class BlueskyPublisherTests
         Assert.False(result.IsSuccess);
         Assert.Contains("not configured", result.ErrorMessage);
     }
+
+    [Fact]
+    public void BuildFacets_WithUrl_ComputesUtf8ByteRange()
+    {
+        var url = "https://example.com/x";
+        var facets = BlueskyPublisher.BuildFacets("Hello world " + url);
+
+        Assert.NotNull(facets);
+        Assert.Single(facets!);
+        var facet = (Dictionary<string, object?>)facets![0];
+        var index = (Dictionary<string, object?>)facet["index"]!;
+        Assert.Equal(12, index["byteStart"]); // "Hello world " = 12 ASCII bytes
+        Assert.Equal(12 + url.Length, index["byteEnd"]);
+    }
+
+    [Fact]
+    public void BuildFacets_NoUrl_ReturnsNull()
+    {
+        Assert.Null(BlueskyPublisher.BuildFacets("just text, no link"));
+    }
 }

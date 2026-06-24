@@ -1,6 +1,8 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using DevNews.Application.Common.Models;
 using DevNews.Application.Common.Services;
 using DevNews.Domain.Common;
@@ -66,16 +68,23 @@ public class BlueskyPublisher : ISocialPostPublisher
             var did = session.GetProperty("did").GetString()!;
 
             // 2) Create the post record. A dictionary is used so the "$type" field serializes literally.
+            var record = new Dictionary<string, object?>
+            {
+                ["$type"] = "app.bsky.feed.post",
+                ["text"] = text,
+                ["createdAt"] = DateTimeOffset.UtcNow.ToString("o"),
+            };
+
+            // Make URLs in the text clickable via richtext facets.
+            var facets = BuildFacets(text);
+            if (facets is not null)
+                record["facets"] = facets;
+
             var createBody = new Dictionary<string, object?>
             {
                 ["repo"] = did,
                 ["collection"] = "app.bsky.feed.post",
-                ["record"] = new Dictionary<string, object?>
-                {
-                    ["$type"] = "app.bsky.feed.post",
-                    ["text"] = text,
-                    ["createdAt"] = DateTimeOffset.UtcNow.ToString("o"),
-                },
+                ["record"] = record,
             };
 
             using var request = new HttpRequestMessage(HttpMethod.Post, "com.atproto.repo.createRecord")
@@ -106,5 +115,37 @@ public class BlueskyPublisher : ISocialPostPublisher
             _logger.LogError(ex, "Bluesky publishing failed");
             return ResultResponse<PlatformPublishResult>.Failure($"Bluesky publishing failed: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Builds AT Protocol richtext facets so each URL in the text renders as a clickable link.
+    /// Offsets are UTF-8 byte positions, as the spec requires. Returns null when there are no URLs.
+    /// </summary>
+    internal static List<object>? BuildFacets(string text)
+    {
+        var matches = Regex.Matches(text, @"https?://\S+");
+        if (matches.Count == 0)
+            return null;
+
+        var facets = new List<object>();
+        foreach (Match m in matches)
+        {
+            var byteStart = Encoding.UTF8.GetByteCount(text[..m.Index]);
+            var byteEnd = byteStart + Encoding.UTF8.GetByteCount(m.Value);
+            facets.Add(new Dictionary<string, object?>
+            {
+                ["index"] = new Dictionary<string, object?> { ["byteStart"] = byteStart, ["byteEnd"] = byteEnd },
+                ["features"] = new[]
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["$type"] = "app.bsky.richtext.facet#link",
+                        ["uri"] = m.Value,
+                    },
+                },
+            });
+        }
+
+        return facets;
     }
 }
