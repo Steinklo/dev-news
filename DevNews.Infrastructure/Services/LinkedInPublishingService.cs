@@ -23,14 +23,16 @@ public class LinkedInPublishingService
     {
         _httpClient = httpClient;
         _logger = logger;
-        _accessToken = configuration["LinkedInAccessToken"]
-            ?? throw new InvalidOperationException("LinkedInAccessToken is not configured");
-        _organizationId = configuration["VideoGeneration:LinkedInOrganizationId"]
-            ?? throw new InvalidOperationException("VideoGeneration:LinkedInOrganizationId is not configured");
+        // LinkedIn is optional — missing credentials must NOT throw here, or PlatformPublishingRouter
+        // (which constructs both publishers) fails to build and breaks all video publishing. We
+        // degrade gracefully in PublishAsync instead.
+        _accessToken = configuration["LinkedInAccessToken"] ?? "";
+        _organizationId = configuration["VideoGeneration:LinkedInOrganizationId"] ?? "";
 
         _httpClient.BaseAddress = new Uri("https://api.linkedin.com/v2/");
-        _httpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _accessToken);
+        if (!string.IsNullOrWhiteSpace(_accessToken))
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _accessToken);
     }
 
     public async Task<ResultResponse<PlatformPublishResult>> PublishAsync(
@@ -40,6 +42,12 @@ public class LinkedInPublishingService
         string[] tags,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(_accessToken) || string.IsNullOrWhiteSpace(_organizationId))
+        {
+            _logger.LogInformation("LinkedIn video publishing skipped — LinkedIn credentials are not configured");
+            return ResultResponse<PlatformPublishResult>.Failure("LinkedIn credentials are not configured");
+        }
+
         try
         {
             // Step 1: Register video upload

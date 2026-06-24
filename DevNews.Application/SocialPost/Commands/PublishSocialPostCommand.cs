@@ -10,7 +10,7 @@ public record PublishSocialPostCommand(
     string Text) : IRequest<ResultResponse<PlatformPublishResult>>;
 
 public class PublishSocialPostHandler(
-    ISocialPostPublisher socialPostPublisher,
+    IEnumerable<ISocialPostPublisher> publishers,
     ILogger<PublishSocialPostHandler> logger)
     : IRequestHandler<PublishSocialPostCommand, ResultResponse<PlatformPublishResult>>
 {
@@ -18,15 +18,29 @@ public class PublishSocialPostHandler(
         PublishSocialPostCommand request,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("Publishing social post to LinkedIn");
+        // Fan out to every configured text platform. Unconfigured ones return a Failure (graceful)
+        // and are simply skipped. We return the first success as the representative result for
+        // persistence (the SocialPost stores a single external id/url).
+        ResultResponse<PlatformPublishResult>? firstSuccess = null;
 
-        var result = await socialPostPublisher.PublishTextAsync(request.Text, cancellationToken);
+        foreach (var publisher in publishers)
+        {
+            var result = await publisher.PublishTextAsync(request.Text, cancellationToken);
 
-        if (!result.IsSuccess)
-            logger.LogWarning("Social post publishing to LinkedIn failed: {Error}", result.ErrorMessage);
-        else
-            logger.LogInformation("Social post published to LinkedIn: {Url}", result.Data!.PublishedUrl);
+            if (result.IsSuccess)
+            {
+                logger.LogInformation("Social post published to {Platform}: {Url}",
+                    publisher.PlatformName, result.Data!.PublishedUrl);
+                firstSuccess ??= result;
+            }
+            else
+            {
+                logger.LogWarning("Social post not published to {Platform}: {Error}",
+                    publisher.PlatformName, result.ErrorMessage);
+            }
+        }
 
-        return result;
+        return firstSuccess
+            ?? ResultResponse<PlatformPublishResult>.Failure("Social post was not published to any configured platform");
     }
 }

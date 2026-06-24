@@ -34,9 +34,9 @@ public class AiSocialPostService(IAiService aiService) : ISocialPostGenerationSe
         sb.AppendLine("Write a short, engaging social media post about this developer news article.");
         sb.AppendLine();
         sb.AppendLine("Rules:");
-        sb.AppendLine("- Include the article title and a 1-2 sentence hook about why it matters");
+        sb.AppendLine("- A short, punchy hook about why it matters (no need to repeat the full title)");
         sb.AppendLine("- Include the source URL at the end");
-        sb.AppendLine("- 300-1200 characters total, plain text");
+        sb.AppendLine("- Keep the ENTIRE post under 280 characters, including the URL. Plain text.");
         sb.AppendLine("- No emojis, no markdown");
         sb.AppendLine("- Professional but engaging tone");
         sb.AppendLine();

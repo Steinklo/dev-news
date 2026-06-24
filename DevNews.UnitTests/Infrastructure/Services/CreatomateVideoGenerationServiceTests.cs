@@ -168,6 +168,20 @@ public class CreatomateVideoGenerationServiceTests
         Assert.DoesNotContain("template_id", requestBody);
     }
 
+    [Fact]
+    public async Task GenerateVideoAsync_NoApiKey_ReturnsFailure_WithoutThrowing()
+    {
+        var config = Substitute.For<IConfiguration>();
+        config["CreatomateApiKey"].Returns((string?)null);
+        var sut = new CreatomateVideoGenerationService(
+            new HttpClient(), config, NullLogger<CreatomateVideoGenerationService>.Instance);
+
+        var result = await sut.GenerateVideoAsync("script", "title");
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("CreatomateApiKey", result.ErrorMessage);
+    }
+
     internal class FakeHttpHandler : HttpMessageHandler
     {
         private readonly Dictionary<string, (byte[] content, string contentType, HttpStatusCode status)> _responses = new();

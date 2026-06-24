@@ -67,7 +67,9 @@ public static class ConfigureServices
 
         // Social post services
         services.AddScoped<ISocialPostGenerationService, AiSocialPostService>();
+        // Multiple text-post platforms — social posts fan out to every one that is configured.
         services.AddHttpClient<ISocialPostPublisher, SocialPostPublisher>();
+        services.AddHttpClient<ISocialPostPublisher, BlueskyPublisher>();
 
         // Platform publishing services
         services.AddHttpClient<YouTubePublishingService>();

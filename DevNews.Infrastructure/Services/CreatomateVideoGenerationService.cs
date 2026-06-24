@@ -36,12 +36,14 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
     {
         _httpClient = httpClient;
         _logger = logger;
-        _apiKey = configuration["CreatomateApiKey"]
-            ?? throw new InvalidOperationException("CreatomateApiKey is not configured");
+        // Creatomate (video render) is optional — a missing key must NOT throw; we skip rendering
+        // in GenerateVideoAsync instead so the rest of the pipeline keeps running.
+        _apiKey = configuration["CreatomateApiKey"] ?? "";
         _voiceName = configuration["VideoGeneration:TtsVoiceName"] ?? "en-US-AndrewMultilingualNeural";
 
         _httpClient.BaseAddress = new Uri("https://api.creatomate.com/v1/");
-        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+        if (!string.IsNullOrWhiteSpace(_apiKey))
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
     }
 
     public async Task<ResultResponse<GeneratedVideo>> GenerateVideoAsync(
@@ -49,6 +51,12 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
         string title,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+        {
+            _logger.LogInformation("Video render skipped — CreatomateApiKey is not configured");
+            return ResultResponse<GeneratedVideo>.Failure("CreatomateApiKey is not configured");
+        }
+
         try
         {
             _logger.LogDebug("Building programmatic video source for: {Title}", title);
