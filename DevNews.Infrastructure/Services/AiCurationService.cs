@@ -9,7 +9,7 @@ namespace DevNews.Infrastructure.Services;
 
 public class AiCurationService(IAiService aiService) : ICurationService
 {
-    private const string CurationModel = "claude-sonnet-4-5-20250514";
+    private const string CurationModel = "claude-sonnet-4-6";
     /// <summary>
     /// Known source mappings from domain to display name.
     /// </summary>

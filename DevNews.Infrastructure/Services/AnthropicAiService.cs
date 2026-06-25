@@ -10,7 +10,7 @@ namespace DevNews.Infrastructure.Services;
 public static class AnthropicOptions
 {
     /// <summary>
-    /// Model to use (e.g., claude-sonnet-4-20250514, claude-haiku-4-20250514)
+    /// Model to use (e.g., claude-haiku-4-5, claude-sonnet-4-6)
     /// </summary>
     public static string Model => "claude-haiku-4-5";
 
