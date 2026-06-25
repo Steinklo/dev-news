@@ -10,6 +10,10 @@ namespace DevNews.Infrastructure.Services;
 
 public class AiSocialPostService(IAiService aiService) : ISocialPostGenerationService
 {
+    // Public-facing brand content — use the stronger model for hook/tone quality.
+    // Output is tiny (≤ 280 chars) and low-volume, so the cost over Haiku is negligible.
+    private const string PostModel = "claude-sonnet-4-6";
+
     public async Task<ResultResponse<string>> GenerateSocialPostAsync(
         SocialPostEligibleItem item,
         CancellationToken ct = default)
@@ -18,7 +22,7 @@ public class AiSocialPostService(IAiService aiService) : ISocialPostGenerationSe
         {
             var prompt = BuildSocialPostPrompt(item);
 
-            var aiResponse = await aiService.GenerateAsync(prompt, ct: ct);
+            var aiResponse = await aiService.GenerateAsync(prompt, PostModel, ct);
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
                 return ResultResponse<string>.Failure(aiResponse.ErrorMessage);
 

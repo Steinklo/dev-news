@@ -7,6 +7,10 @@ namespace DevNews.Infrastructure.Services;
 
 public class AiVideoScriptService(IAiService aiService) : IVideoScriptService
 {
+    // The script is the end product (video narration) — use the stronger model.
+    // One render per day, short output, so the cost over Haiku is negligible.
+    private const string ScriptModel = "claude-sonnet-4-6";
+
     public async Task<ResultResponse<string>> GenerateScriptAsync(
         string title,
         string summary,
@@ -17,7 +21,7 @@ public class AiVideoScriptService(IAiService aiService) : IVideoScriptService
         {
             var prompt = BuildPrompt(title, summary, category);
 
-            var aiResponse = await aiService.GenerateAsync(prompt, ct: ct);
+            var aiResponse = await aiService.GenerateAsync(prompt, ScriptModel, ct);
             if (!aiResponse.IsSuccess || string.IsNullOrWhiteSpace(aiResponse.Data))
                 return ResultResponse<string>.Failure(aiResponse.ErrorMessage);
 
