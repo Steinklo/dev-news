@@ -105,6 +105,33 @@ public class AiCurationService(IAiService aiService) : ICurationService
         return char.ToUpper(fallback[0]) + fallback[1..];
     }
 
+    /// <summary>
+    /// Clamps an over-long summary to the allowed length, cutting at a sentence (or word)
+    /// boundary. Sonnet writes denser summaries than the previous model and can exceed the
+    /// NewsSummary cap; clamping here keeps an otherwise-good article from being dropped at
+    /// persist purely for length (mirrors the social-post truncate safety net).
+    /// </summary>
+    private static string ClampSummary(string summary, int max)
+    {
+        summary = summary.Trim();
+        if (summary.Length <= max)
+            return summary;
+
+        var window = summary[..max];
+
+        // Prefer ending on a complete sentence within the limit.
+        var lastSentenceEnd = window.LastIndexOfAny(['.', '!', '?']);
+        if (lastSentenceEnd >= CurationRules.MinSummaryLength)
+            return window[..(lastSentenceEnd + 1)].TrimEnd();
+
+        // Otherwise cut at the last word boundary, leaving room for the ellipsis so the
+        // result is always <= max.
+        var trimmed = window[..(max - 1)];
+        var lastSpace = trimmed.LastIndexOf(' ');
+        var body = (lastSpace > 0 ? trimmed[..lastSpace] : trimmed).TrimEnd();
+        return body + "…";
+    }
+
     public async Task<ResultResponse<CleanedArticle>> CurateAsync(CrawledArticle article,
         CancellationToken ct = default)
     {
@@ -155,7 +182,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
             sb.AppendLine("Extract the following fields:");
             sb.AppendLine("- title: The article title (clean, factual)");
             sb.AppendLine(
-                "- summary: A TL;DR summary of the article content (80-160 words, dense, no fluff, developer language)");
+                "- summary: A TL;DR summary of the article content (80-140 words, dense, no fluff, developer language)");
             sb.AppendLine("- category: The best-fit category from the allowed list");
             sb.AppendLine("- relevanceScore: 0-100 indicating how relevant this is for professional developers");
             sb.AppendLine("- severity: ONLY for AiSafetyAndSecurity category - one of: " + severityList);
@@ -170,7 +197,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
             sb.AppendLine(
                 $"- Title must be {CurationRules.MinTitleLength}–{CurationRules.MaxTitleLength} characters and factual");
             sb.AppendLine(
-                $"- Summary (TL;DR) must be {CurationRules.MinSummaryLength}–{CurationRules.MaxSummaryLength} characters, concise, spoiler-free");
+                $"- Summary (TL;DR) must be {CurationRules.MinSummaryLength}–{CurationRules.MaxSummaryLength} characters — a HARD character limit (count characters, not words); stay safely under {CurationRules.MaxSummaryLength}. Concise, spoiler-free");
             sb.AppendLine($"- Category must be exactly one of: {categoriesList}");
             sb.AppendLine(
                 "- relevanceScore: 90+ for major model releases/breaking API changes, 70-89 for important framework updates/research, 50-69 for notable community content, below 50 for tangentially-related content");
@@ -270,6 +297,9 @@ public class AiCurationService(IAiService aiService) : ICurationService
             {
                 return ResultResponse<CleanedArticle>.Failure("Summary is empty in AI response");
             }
+
+            // Safety net: never drop a good article just because the summary overshot the cap.
+            summary = ClampSummary(summary, CurationRules.MaxSummaryLength);
 
             // Extract and parse category
             if (!dataElement.TryGetProperty("category", out var categoryElement))
