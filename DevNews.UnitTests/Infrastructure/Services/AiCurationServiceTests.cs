@@ -266,4 +266,24 @@ public class AiCurationServiceTests
 
         Assert.False(result.IsSuccess);
     }
+
+    [Fact]
+    public async Task CurateAsync_SummaryExceedsMaxLength_ClampsInsteadOfDropping()
+    {
+        // A dense summary longer than the cap — what the stronger model can produce.
+        var sentence = "This release ships a faster inference path and a cleaner agent API for developers. ";
+        var longSummary = "";
+        for (var i = 0; i < 20; i++)
+            longSummary += sentence;
+        Assert.True(longSummary.Length > CurationRules.MaxSummaryLength);
+
+        SetupAiResponse(BuildSuccessJson(summary: longSummary));
+        var crawled = CreateCrawledArticle();
+
+        var result = await _sut.CurateAsync(crawled);
+
+        // Previously this dropped the article ("Summary cannot exceed 1000 characters").
+        Assert.True(result.IsSuccess);
+        Assert.InRange(result.Data!.Summary.Length, CurationRules.MinSummaryLength, CurationRules.MaxSummaryLength);
+    }
 }
