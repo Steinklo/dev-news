@@ -56,35 +56,31 @@ public class AnthropicAiService : IAiService
                 Model = model,
                 MaxTokens = AnthropicOptions.MaxTokens,
                 System = "You are a JSON-only API. Output valid JSON without any preamble, explanation, or markdown formatting.",
+                // Note: no assistant-message prefill. Sonnet 4.6 and the rest of the
+                // current model family reject a trailing assistant turn with a 400
+                // ("does not support assistant message prefill"). JSON-only output is
+                // enforced via the system prompt above and CleanJsonResponse in callers.
                 Messages =
                 [
                     new MessageParam
                     {
                         Role = Role.User,
                         Content = prompt
-                    },
-                    // Prefill assistant response to force JSON output
-                    new MessageParam
-                    {
-                        Role = Role.Assistant,
-                        Content = "{"
                     }
                 ]
             };
 
             var message = await _client.Messages.Create(parameters, ct);
 
-            // Extract text content from response and prepend the prefilled "{"
-            var rawContent = "";
+            // Extract text content from the response (full JSON, no prefill to prepend).
+            var textContent = "";
             foreach (var block in message.Content)
             {
                 if (block.Value is Anthropic.Models.Messages.TextBlock textBlock)
                 {
-                    rawContent += textBlock.Text ?? "";
+                    textContent += textBlock.Text ?? "";
                 }
             }
-
-            var textContent = "{" + rawContent;
 
             if (string.IsNullOrWhiteSpace(textContent))
             {
