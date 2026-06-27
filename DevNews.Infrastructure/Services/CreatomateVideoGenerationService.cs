@@ -26,16 +26,15 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
     // caption element's `transcript_source` — they MUST stay equal or the captions silently break.
     private const string VoiceoverElementName = "Voiceover";
     private const string FontFamily = "Inter";
+    private const string BackgroundColor = "#0a0a12";
     private const string TextColor = "#ffffff";
 
-    // Animated backdrop: a deep vertical gradient plus two soft colour glows that slowly scale,
-    // so the background breathes instead of sitting as a flat fill. No external image call.
-    private const string BackgroundGradient =
-        "linear-gradient(180deg, #15152e 0%, #0a0a12 55%, #050509 100%)";
-    private const string GlowColorA =
-        "radial-gradient(circle, rgba(99,91,255,0.30) 0%, rgba(99,91,255,0) 70%)";
-    private const string GlowColorB =
-        "radial-gradient(circle, rgba(40,180,200,0.22) 0%, rgba(40,180,200,0) 70%)";
+    // Animated backdrop: two large, semi-transparent colour washes that slowly scale so the dark
+    // background breathes instead of sitting as a flat fill. Uses solid rgba fills + a "scale"
+    // animation with linear easing — all confirmed against the Creatomate docs. No external image
+    // call. (Creatomate does NOT accept CSS linear-/radial-gradient strings in fill_color.)
+    private const string GlowColorA = "rgba(99,91,255,0.14)";
+    private const string GlowColorB = "rgba(40,180,200,0.10)";
     private const string FullFramePath = "M 0 0 L 100 0 L 100 100 L 0 100 Z";
 
     public CreatomateVideoGenerationService(
@@ -112,42 +111,43 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
             height = 1920,
             elements = new object[]
             {
-                // Gradient backdrop (replaces the removed DALL-E image — no external call)
+                // Solid dark backdrop (replaces the removed DALL-E image — no external call)
                 new
                 {
                     type = "shape",
                     width = "100%",
                     height = "100%",
-                    fill_color = BackgroundGradient,
+                    fill_color = BackgroundColor,
                     path = FullFramePath,
                 },
-                // Two soft colour glows that slowly scale to give the backdrop subtle motion
+                // Two soft colour washes that slowly scale to give the backdrop subtle motion.
+                // Oversized + off-centre so their hard edges sit outside the visible frame.
                 new
                 {
                     type = "shape",
-                    width = "85%",
-                    height = "40%",
-                    x = "30%",
-                    y = "28%",
+                    width = "130%",
+                    height = "55%",
+                    x = "25%",
+                    y = "22%",
                     fill_color = GlowColorA,
                     path = FullFramePath,
                     animations = new object[]
                     {
-                        new { type = "scale", fade = false, easing = "ease-in-out", start_scale = "100%", end_scale = "135%" },
+                        new { type = "scale", fade = false, easing = "linear", start_scale = "100%", end_scale = "135%" },
                     },
                 },
                 new
                 {
                     type = "shape",
-                    width = "85%",
-                    height = "40%",
-                    x = "72%",
-                    y = "78%",
+                    width = "130%",
+                    height = "55%",
+                    x = "78%",
+                    y = "82%",
                     fill_color = GlowColorB,
                     path = FullFramePath,
                     animations = new object[]
                     {
-                        new { type = "scale", fade = false, easing = "ease-in-out", start_scale = "130%", end_scale = "100%" },
+                        new { type = "scale", fade = false, easing = "linear", start_scale = "130%", end_scale = "100%" },
                     },
                 },
                 // Title text
@@ -200,7 +200,7 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
                 {
                     name = VoiceoverElementName,
                     type = "audio",
-                    provider = $"openai voice_id={_voiceName}",
+                    provider = $"openai model_id=tts-1 voice_id={_voiceName}",
                     source = script,
                 },
                 // Progress bar
