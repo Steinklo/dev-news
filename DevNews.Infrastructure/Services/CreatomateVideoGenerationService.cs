@@ -191,7 +191,7 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
                     background_color = "rgba(0,0,0,0.3)",
                     background_x_padding = "30%",
                     background_y_padding = "30%",
-                    background_border_radius = "1 vmin",
+                    background_border_radius = "8%",
                 },
                 // Voiceover (OpenAI TTS via Creatomate) — named so captions can reference it.
                 // Creatomate dropped the "microsoft" (Azure) provider; supported values are now
