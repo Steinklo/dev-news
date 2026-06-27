@@ -29,6 +29,14 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
     private const string BackgroundColor = "#0a0a12";
     private const string TextColor = "#ffffff";
 
+    // Animated backdrop: two large, semi-transparent colour washes that slowly scale so the dark
+    // background breathes instead of sitting as a flat fill. Uses solid rgba fills + a "scale"
+    // animation with linear easing — all confirmed against the Creatomate docs. No external image
+    // call. (Creatomate does NOT accept CSS linear-/radial-gradient strings in fill_color.)
+    private const string GlowColorA = "rgba(99,91,255,0.14)";
+    private const string GlowColorB = "rgba(40,180,200,0.10)";
+    private const string FullFramePath = "M 0 0 L 100 0 L 100 100 L 0 100 Z";
+
     public CreatomateVideoGenerationService(
         HttpClient httpClient,
         IConfiguration configuration,
@@ -39,7 +47,8 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
         // Creatomate (video render) is optional — a missing key must NOT throw; we skip rendering
         // in GenerateVideoAsync instead so the rest of the pipeline keeps running.
         _apiKey = configuration["CreatomateApiKey"] ?? "";
-        _voiceName = configuration["VideoGeneration:TtsVoiceName"] ?? "en-US-AndrewMultilingualNeural";
+        // OpenAI TTS voice id (alloy, echo, fable, onyx, nova, shimmer). Must match the provider in BuildVideoSource.
+        _voiceName = configuration["VideoGeneration:TtsVoiceName"] ?? "onyx";
 
         _httpClient.BaseAddress = new Uri("https://api.creatomate.com/v1/");
         if (!string.IsNullOrWhiteSpace(_apiKey))
@@ -102,14 +111,44 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
             height = 1920,
             elements = new object[]
             {
-                // Solid dark background (replaces the DALL-E image — no external call)
+                // Solid dark backdrop (replaces the removed DALL-E image — no external call)
                 new
                 {
                     type = "shape",
                     width = "100%",
                     height = "100%",
                     fill_color = BackgroundColor,
-                    path = "M 0 0 L 100 0 L 100 100 L 0 100 Z",
+                    path = FullFramePath,
+                },
+                // Two soft colour washes that slowly scale to give the backdrop subtle motion.
+                // Oversized + off-centre so their hard edges sit outside the visible frame.
+                new
+                {
+                    type = "shape",
+                    width = "130%",
+                    height = "55%",
+                    x = "25%",
+                    y = "22%",
+                    fill_color = GlowColorA,
+                    path = FullFramePath,
+                    animations = new object[]
+                    {
+                        new { type = "scale", fade = false, easing = "linear", start_scale = "100%", end_scale = "135%" },
+                    },
+                },
+                new
+                {
+                    type = "shape",
+                    width = "130%",
+                    height = "55%",
+                    x = "78%",
+                    y = "82%",
+                    fill_color = GlowColorB,
+                    path = FullFramePath,
+                    animations = new object[]
+                    {
+                        new { type = "scale", fade = false, easing = "linear", start_scale = "130%", end_scale = "100%" },
+                    },
                 },
                 // Title text
                 new
@@ -154,12 +193,14 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
                     background_y_padding = "30%",
                     background_border_radius = "1 vmin",
                 },
-                // Voiceover (Azure TTS via Creatomate) — named so captions can reference it
+                // Voiceover (OpenAI TTS via Creatomate) — named so captions can reference it.
+                // Creatomate dropped the "microsoft" (Azure) provider; supported values are now
+                // "openai", "elevenlabs", "stabilityai". _voiceName must be valid for this provider.
                 new
                 {
                     name = VoiceoverElementName,
                     type = "audio",
-                    provider = $"microsoft voice_id={_voiceName}",
+                    provider = $"openai model_id=tts-1 voice_id={_voiceName}",
                     source = script,
                 },
                 // Progress bar

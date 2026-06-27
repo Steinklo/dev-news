@@ -18,7 +18,7 @@ public class CreatomateVideoGenerationServiceTests
         var httpClient = new HttpClient(_httpHandler);
         var configuration = Substitute.For<IConfiguration>();
         configuration["CreatomateApiKey"].Returns("test-api-key");
-        configuration["VideoGeneration:TtsVoiceName"].Returns("en-US-AndrewMultilingualNeural");
+        configuration["VideoGeneration:TtsVoiceName"].Returns("onyx");
 
         _sut = new CreatomateVideoGenerationService(
             httpClient,
@@ -34,12 +34,11 @@ public class CreatomateVideoGenerationServiceTests
 
         Assert.Contains("Test Title", json);              // title text
         Assert.Contains("Test script for video", json);   // voiceover source
-        Assert.Contains("microsoft", json);               // Azure TTS via Creatomate
-        Assert.Contains("en-US-AndrewMultilingualNeural", json);
+        Assert.Contains("openai", json);                  // OpenAI TTS via Creatomate
+        Assert.Contains("onyx", json);                    // configured voice id
         Assert.Contains("wipe", json);                    // progress bar
         Assert.Contains("transcript_source", json);       // synced captions
         Assert.DoesNotContain("dall-e", json, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("openai", json, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
