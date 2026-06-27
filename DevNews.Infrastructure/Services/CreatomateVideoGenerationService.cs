@@ -29,13 +29,6 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
     private const string FontFamily = "Inter";
     private const string BackgroundColor = "#0a0a12";
     private const string TextColor = "#ffffff";
-
-    // Animated backdrop: two large, semi-transparent colour washes that slowly scale so the dark
-    // background breathes instead of sitting as a flat fill. Uses solid rgba fills + a "scale"
-    // animation with linear easing — all confirmed against the Creatomate docs. No external image
-    // call. (Creatomate does NOT accept CSS linear-/radial-gradient strings in fill_color.)
-    private const string GlowColorA = "rgba(99,91,255,0.14)";
-    private const string GlowColorB = "rgba(40,180,200,0.10)";
     private const string FullFramePath = "M 0 0 L 100 0 L 100 100 L 0 100 Z";
 
     public CreatomateVideoGenerationService(
@@ -118,50 +111,23 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
             height = 1920,
             elements = new object[]
             {
-                // Solid dark backdrop (replaces the removed DALL-E image — no external call)
+                // Solid dark backdrop on the lowest track (track = z-order; higher = nearer front).
+                // Elements MUST have explicit tracks: a no-track element auto-lands in front and would
+                // paint over the text (which is exactly what hid the title/captions before).
                 new
                 {
                     type = "shape",
+                    track = 1,
                     width = "100%",
                     height = "100%",
                     fill_color = BackgroundColor,
                     path = FullFramePath,
                 },
-                // Two soft colour washes that slowly scale to give the backdrop subtle motion.
-                // Oversized + off-centre so their hard edges sit outside the visible frame.
-                new
-                {
-                    type = "shape",
-                    width = "130%",
-                    height = "55%",
-                    x = "25%",
-                    y = "22%",
-                    fill_color = GlowColorA,
-                    path = FullFramePath,
-                    animations = new object[]
-                    {
-                        new { type = "scale", fade = false, easing = "linear", start_scale = "100%", end_scale = "135%" },
-                    },
-                },
-                new
-                {
-                    type = "shape",
-                    width = "130%",
-                    height = "55%",
-                    x = "78%",
-                    y = "82%",
-                    fill_color = GlowColorB,
-                    path = FullFramePath,
-                    animations = new object[]
-                    {
-                        new { type = "scale", fade = false, easing = "linear", start_scale = "130%", end_scale = "100%" },
-                    },
-                },
                 // Title text
                 new
                 {
                     type = "text",
-                    track = 1,
+                    track = 2,
                     text = title,
                     y = "15%",
                     width = "90%",
@@ -181,13 +147,13 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
                 new
                 {
                     type = "text",
-                    track = 2,
+                    track = 3,
                     text = " ",
                     transcript_source = VoiceoverElementName,
                     transcript_effect = "highlight",
                     transcript_split = "word",
                     transcript_maximum_length = 24,
-                    y = "75%",
+                    y = "58%",
                     width = "85%",
                     x_alignment = "50%",
                     y_alignment = "50%",
@@ -217,7 +183,7 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
                 new
                 {
                     type = "shape",
-                    track = 3,
+                    track = 4,
                     y = "1%",
                     width = "100%",
                     height = "0.5%",
