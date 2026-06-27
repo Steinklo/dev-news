@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -51,8 +52,9 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
         _voiceName = configuration["VideoGeneration:TtsVoiceName"] ?? "onyx";
 
         _httpClient.BaseAddress = new Uri("https://api.creatomate.com/v1/");
-        if (!string.IsNullOrWhiteSpace(_apiKey))
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+        // NOTE: auth is attached per-request (see SendAsync calls), NOT as a default header. The
+        // finished render is downloaded from Creatomate's public storage (Backblaze), which returns
+        // 401 if any Authorization header is present — a default bearer would leak onto that download.
     }
 
     public async Task<ResultResponse<GeneratedVideo>> GenerateVideoAsync(
@@ -74,7 +76,12 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
 
             var requestBody = new { source };
 
-            var response = await _httpClient.PostAsJsonAsync("renders", requestBody, JsonOptions, ct);
+            using var renderRequest = new HttpRequestMessage(HttpMethod.Post, "renders")
+            {
+                Content = JsonContent.Create(requestBody, options: JsonOptions),
+            };
+            renderRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+            var response = await _httpClient.SendAsync(renderRequest, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -241,7 +248,9 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
         {
             await Task.Delay(pollIntervalMs, ct);
 
-            var response = await _httpClient.GetAsync($"renders/{renderId}", ct);
+            using var statusRequest = new HttpRequestMessage(HttpMethod.Get, $"renders/{renderId}");
+            statusRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+            var response = await _httpClient.SendAsync(statusRequest, ct);
             if (!response.IsSuccessStatusCode) continue;
 
             var render = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
@@ -256,6 +265,8 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
                         ? (int)Math.Ceiling(durEl.GetDouble())
                         : 30;
 
+                    // No auth header here on purpose: the URL is Creatomate's public storage and
+                    // 401s if an Authorization header is sent (see constructor note).
                     var videoBytes = await _httpClient.GetByteArrayAsync(url, ct);
 
                     _logger.LogInformation("Video render completed: {RenderId} ({Duration}s)", renderId, duration);
