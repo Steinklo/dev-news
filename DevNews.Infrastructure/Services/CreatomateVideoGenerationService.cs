@@ -200,7 +200,9 @@ public class CreatomateVideoGenerationService : IVideoGenerationService
                 {
                     name = VoiceoverElementName,
                     type = "audio",
-                    provider = $"openai model_id=tts-1 voice_id={_voiceName}",
+                    // OpenAI uses `model` (not ElevenLabs' `model_id`) — confirmed by the live
+                    // Creatomate API: it 400s with 'The parameter "model" is required' otherwise.
+                    provider = $"openai model=tts-1 voice_id={_voiceName}",
                     source = script,
                 },
                 // Progress bar
