@@ -74,6 +74,7 @@ public static class ConfigureServices
         // Platform publishing services
         services.AddHttpClient<YouTubePublishingService>();
         services.AddHttpClient<LinkedInPublishingService>();
+        services.AddHttpClient<BlueskyVideoPublishingService>();
         services.AddScoped<IPlatformPublishingService, PlatformPublishingRouter>();
 
         return services;

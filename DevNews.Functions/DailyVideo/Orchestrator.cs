@@ -12,7 +12,7 @@ namespace DevNews.Functions.DailyVideo;
 public class Orchestrator
 {
     private const int MinQualityScore = 70;
-    private static readonly Platform[] TargetPlatforms = [Platform.YouTube, Platform.LinkedIn];
+    private static readonly Platform[] TargetPlatforms = [Platform.YouTube, Platform.LinkedIn, Platform.Bluesky];
 
     [Function(nameof(DailyVideoOrchestrator))]
     public async Task<DailyVideoResult> DailyVideoOrchestrator(

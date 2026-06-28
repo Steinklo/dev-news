@@ -6,5 +6,6 @@ namespace DevNews.Domain.Common.Enums;
 public enum Platform
 {
     YouTube = 1,
-    LinkedIn = 2
+    LinkedIn = 2,
+    Bluesky = 3
 }
