@@ -182,7 +182,7 @@ public class AiCurationService(IAiService aiService) : ICurationService
             sb.AppendLine("Extract the following fields:");
             sb.AppendLine("- title: The article title (clean, factual)");
             sb.AppendLine(
-                "- summary: A TL;DR summary of the article content (80-140 words, dense, no fluff, developer language)");
+                "- summary: A TL;DR summary of the article content (80-140 words, dense, no fluff, developer language), structured as 2-3 short paragraphs separated by a blank line");
             sb.AppendLine("- category: The best-fit category from the allowed list");
             sb.AppendLine("- relevanceScore: 0-100 indicating how relevant this is for professional developers");
             sb.AppendLine("- severity: ONLY for AiSafetyAndSecurity category - one of: " + severityList);
@@ -197,7 +197,9 @@ public class AiCurationService(IAiService aiService) : ICurationService
             sb.AppendLine(
                 $"- Title must be {CurationRules.MinTitleLength}–{CurationRules.MaxTitleLength} characters and factual");
             sb.AppendLine(
-                $"- Summary (TL;DR) must be {CurationRules.MinSummaryLength}–{CurationRules.MaxSummaryLength} characters — a HARD character limit (count characters, not words); stay safely under {CurationRules.MaxSummaryLength}. Concise, spoiler-free");
+                $"- Summary (TL;DR) must be {CurationRules.MinSummaryLength}–{CurationRules.MaxSummaryLength} characters — a HARD character limit (count characters across ALL paragraphs, not words); stay safely under {CurationRules.MaxSummaryLength}. Concise, spoiler-free");
+            sb.AppendLine(
+                "- Split the summary into 2-3 short paragraphs separated by a blank line. Use an escaped newline sequence (\\n\\n) inside the JSON string — the response MUST remain valid JSON (no raw/literal newlines inside string values)");
             sb.AppendLine($"- Category must be exactly one of: {categoriesList}");
             sb.AppendLine(
                 "- relevanceScore: 90+ for major model releases/breaking API changes, 70-89 for important framework updates/research, 50-69 for notable community content, below 50 for tangentially-related content");
