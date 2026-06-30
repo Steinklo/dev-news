@@ -36,7 +36,10 @@ public class SelectDailyVideoItemsHandler(
         // Dedup against every video produced this month, not just the last 24h. The candidate pool
         // spans the whole month, so a narrower window would let the month's top scorer be re-selected
         // — and re-rendered/re-published — on later days. Mirrors the social-post selector's dedup.
-        var monthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
+        // Anchor on `since`, not `now`: the candidate query picks its month partition from `since`,
+        // so on the 1st (when `since` falls in the prior month) the dedup window must too, or an
+        // article videoed last month could be re-selected on the boundary run.
+        var monthStart = new DateTimeOffset(since.Year, since.Month, 1, 0, 0, 0, TimeSpan.Zero);
         var existingResult = await shortVideoRepository.GetNewsItemIdsWithVideosAsync(monthStart, cancellationToken);
         if (!existingResult.IsSuccess)
         {
