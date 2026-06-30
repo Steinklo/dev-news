@@ -38,9 +38,18 @@ public class SelectDailyVideoItemsHandler(
         // — and re-rendered/re-published — on later days. Mirrors the social-post selector's dedup.
         var monthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
         var existingResult = await shortVideoRepository.GetNewsItemIdsWithVideosAsync(monthStart, cancellationToken);
-        var existingIds = existingResult.IsSuccess
-            ? existingResult.Data!.ToHashSet()
-            : new HashSet<Guid>();
+        if (!existingResult.IsSuccess)
+        {
+            // Fail closed: without the dedup set we could re-render and re-publish a video for an
+            // article that already has one. A missed daily video is recoverable; a duplicate publish
+            // to YouTube/LinkedIn/Bluesky is not. The activity turns this failure into a skipped run.
+            logger.LogError("Daily video dedup lookup failed, skipping selection: {Error}",
+                existingResult.ErrorMessage);
+            return ResultResponse<IReadOnlyList<DailyVideoItem>>.Failure(
+                $"Could not load existing video IDs for dedup: {existingResult.ErrorMessage}");
+        }
+
+        var existingIds = existingResult.Data!.ToHashSet();
 
         var items = new List<DailyVideoItem>();
 

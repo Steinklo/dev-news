@@ -77,6 +77,39 @@ public class SelectDailyVideoItemsHandlerTests
     }
 
     [Fact]
+    public async Task Handle_DedupLookup_UsesStartOfCurrentMonth()
+    {
+        // The dedup window must span the whole month (the candidate pool does), not a rolling 24h
+        // window — otherwise the month's top scorer slips back in and re-renders on later days.
+        await _handler.Handle(new SelectDailyVideoItemsQuery(), CancellationToken.None);
+
+        await _shortVideoRepository.Received(1).GetNewsItemIdsWithVideosAsync(
+            Arg.Is<DateTimeOffset>(d => d.Day == 1 && d.TimeOfDay == TimeSpan.Zero && d.Offset == TimeSpan.Zero),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_DedupLookupFails_FailsClosed()
+    {
+        // A high-scoring candidate exists, but the dedup lookup fails. The handler must NOT proceed
+        // (which would risk a duplicate publish); it fails so the activity skips the run.
+        var item95 = TestData.CreateValidNewsItem(CategoryEnum.AiModelsAndApis, relevanceScore: 95);
+
+        _newsItemRepository.GetByCategoryAndMonthAsync(
+                CategoryEnum.AiModelsAndApis, Arg.Any<DateTimeOffset>(), Arg.Any<DateTimeOffset>(),
+                Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(ResultResponse<IEnumerable<DevNews.Domain.NewsItem.NewsItem>>.Success(
+                new[] { item95 }));
+
+        _shortVideoRepository.GetNewsItemIdsWithVideosAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(ResultResponse<IEnumerable<Guid>>.Failure("cosmos unavailable"));
+
+        var result = await _handler.Handle(new SelectDailyVideoItemsQuery(), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+    }
+
+    [Fact]
     public async Task Handle_AllCandidatesAlreadyVideoed_ReturnsEmpty()
     {
         var item95 = TestData.CreateValidNewsItem(CategoryEnum.AiModelsAndApis, relevanceScore: 95);
